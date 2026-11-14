@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 CODE_PREFIX = "TK-"
@@ -78,15 +78,21 @@ class Ticket(models.Model):
         is_new = self._state.adding
         if is_new and self.sla_due_at is None:
             self.sla_due_at = self.sla_due_for(self.priority, self.created_at)
-        super().save(*args, **kwargs)
-        if is_new and not self.code:
-            # El código se deriva del pk: único y sin condiciones de carrera.
-            self.code = f"{CODE_PREFIX}{CODE_OFFSET + self.pk}"
-            type(self).objects.filter(pk=self.pk).update(code=self.code)
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            if is_new and not self.code:
+                # El código se deriva del pk: único y sin condiciones de carrera.
+                # Dentro de la transacción: si el UPDATE falla, el INSERT se revierte.
+                self.code = f"{CODE_PREFIX}{CODE_OFFSET + self.pk}"
+                type(self).objects.filter(pk=self.pk).update(code=self.code)
 
     @classmethod
     def sla_due_for(cls, priority, created_at):
-        return created_at + timedelta(hours=cls.SLA_HOURS[priority])
+        try:
+            hours = cls.SLA_HOURS[priority]
+        except KeyError:
+            raise ValueError(f"Prioridad inválida: {priority!r}") from None
+        return created_at + timedelta(hours=hours)
 
 
 class Comment(models.Model):

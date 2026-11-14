@@ -56,6 +56,77 @@ def test_formulario_de_ticket_y_alta_desde_el_admin(admin_client, admin_user, ti
     assert created.code.startswith("TK-")
     assert created.status == Ticket.Status.OPEN
     assert created.sla_due_at is not None
+    events = list(created.events.all())
+    assert [e.type for e in events] == [TicketEvent.Type.CREATED]
+    assert events[0].actor == admin_user
+
+
+def test_comentario_desde_el_admin_genera_evento(admin_client, admin_user, ticket):
+    url = reverse("admin:tickets_comment_add")
+    base = {"ticket": ticket.pk, "author": admin_user.pk, "body": "Hola"}
+    when = {"created_at_0": "2026-11-14", "created_at_1": "10:00:00"}
+
+    assert admin_client.post(url, {**base, **when}).status_code == 302
+    assert admin_client.post(url, {**base, **when, "is_internal": "on"}).status_code == 302
+
+    types = list(ticket.events.order_by("pk").values_list("type", flat=True))
+    assert types == [
+        TicketEvent.Type.CREATED,
+        TicketEvent.Type.COMMENTED,
+        TicketEvent.Type.INTERNAL_NOTE,
+    ]
+
+
+def test_comentario_inline_genera_evento_solo_al_crearse(admin_client, admin_user, ticket):
+    def post(**extra):
+        return admin_client.post(
+            reverse("admin:tickets_ticket_change", args=[ticket.pk]),
+            {
+                "subject": ticket.subject,
+                "description": ticket.description,
+                "priority": ticket.priority,
+                "category": ticket.category.pk,
+                "requester": ticket.requester.pk,
+                "created_at_0": "2026-11-14",
+                "created_at_1": "10:00:00",
+                "events-TOTAL_FORMS": "0",
+                "events-INITIAL_FORMS": "0",
+                **extra,
+            },
+        )
+
+    new = {
+        "comments-TOTAL_FORMS": "1",
+        "comments-INITIAL_FORMS": "0",
+        "comments-0-author": admin_user.pk,
+        "comments-0-body": "Nota",
+        "comments-0-created_at_0": "2026-11-14",
+        "comments-0-created_at_1": "11:00:00",
+    }
+    assert post(**new).status_code == 302
+    comment = ticket.comments.get()
+    assert ticket.events.filter(type=TicketEvent.Type.COMMENTED).count() == 1
+
+    edit = {
+        "comments-TOTAL_FORMS": "1",
+        "comments-INITIAL_FORMS": "1",
+        "comments-0-id": comment.pk,
+        "comments-0-ticket": ticket.pk,
+        "comments-0-author": admin_user.pk,
+        "comments-0-body": "Nota editada",
+        "comments-0-created_at_0": "2026-11-14",
+        "comments-0-created_at_1": "11:00:00",
+    }
+    assert post(**edit).status_code == 302
+    comment.refresh_from_db()
+    assert comment.body == "Nota editada"
+    assert ticket.events.filter(type=TicketEvent.Type.COMMENTED).count() == 1
+
+
+def test_asignado_no_editable_desde_el_admin(admin_client, ticket):
+    response = admin_client.get(reverse("admin:tickets_ticket_change", args=[ticket.pk]))
+
+    assert "assignee" not in response.context["adminform"].form.fields
 
 
 def test_estado_no_editable_desde_el_admin(admin_client, ticket):

@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 
@@ -45,6 +46,24 @@ def test_codigos_distintos_y_estables_al_volver_a_guardar(requester, category):
 
     assert first.code != second.code
     assert Ticket.objects.get(pk=first.pk).code == code
+
+
+def test_si_falla_el_update_del_codigo_no_queda_ticket_huerfano(requester, category, monkeypatch):
+    def boom(self, **kwargs):
+        raise RuntimeError("fallo simulado")
+
+    monkeypatch.setattr(models.QuerySet, "update", boom)
+
+    with pytest.raises(RuntimeError):
+        make_ticket(requester, category)
+
+    monkeypatch.undo()
+    assert Ticket.objects.count() == 0
+
+
+def test_sla_con_prioridad_invalida_lanza_value_error():
+    with pytest.raises(ValueError, match="Prioridad inválida"):
+        Ticket.sla_due_for("critica", timezone.now())
 
 
 @pytest.mark.parametrize(
