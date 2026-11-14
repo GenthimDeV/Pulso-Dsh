@@ -10,3 +10,6 @@ extend-exclude = [".venv", "staticfiles"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "DJ"]
+
+[tool.ruff.lint.per-file-ignores]
+"tickets/seed_data.py" = ["E501"]  # textos de demo en una línea cada uno
