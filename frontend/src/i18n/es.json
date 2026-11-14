@@ -36,6 +36,66 @@
     "newTicket": "Nuevo ticket",
     "ticketDetail": "Detalle del ticket"
   },
+  "duration": {
+    "lessThanMinute": "< 1 min",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "days": "{{count}} d"
+  },
+  "tickets": {
+    "subtitleAgent": "Todos los tickets de soporte · datos ficticios",
+    "subtitleRequester": "Tus tickets de soporte · datos ficticios",
+    "unassigned": "Sin asignar",
+    "loading": "Cargando tickets…",
+    "retry": "Reintentar",
+    "results": "Resultados",
+    "showing": "Mostrando {{from}}–{{to}} de {{total}}",
+    "slaBreached": "SLA vencido",
+    "status": {
+      "open": "Abierto",
+      "assigned": "Asignado",
+      "in_progress": "En curso",
+      "resolved": "Resuelto"
+    },
+    "priority": {
+      "urgent": "Urgente",
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "tabs": {
+      "label": "Filtrar por estado",
+      "all": "Todos"
+    },
+    "filters": {
+      "search": "Buscar",
+      "searchPlaceholder": "Asunto, código o solicitante",
+      "priority": "Prioridad",
+      "agent": "Agente",
+      "allFeminine": "Todas",
+      "allMasculine": "Todos",
+      "mine": "Asignados a mí",
+      "clear": "Limpiar filtros"
+    },
+    "columns": {
+      "ticket": "Ticket",
+      "requester": "Solicitante",
+      "priority": "Prioridad",
+      "status": "Estado",
+      "agent": "Agente",
+      "updated": "Actualizado",
+      "waiting": "Esperando"
+    },
+    "empty": {
+      "title": "Ningún ticket coincide",
+      "hint": "Prueba con otro estado o limpia los filtros."
+    },
+    "pagination": {
+      "label": "Paginación",
+      "previous": "Página anterior",
+      "next": "Página siguiente"
+    }
+  },
   "auth": {
     "restoring": "Restaurando la sesión…",
     "subtitle": "Gestión de tickets de soporte · demo con datos ficticios",

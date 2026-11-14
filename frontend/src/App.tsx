@@ -10,6 +10,7 @@ import { Login } from './pages/Login'
 import { NoProfile } from './pages/NoProfile'
 import { NotFound } from './pages/NotFound'
 import { Placeholder } from './pages/Placeholder'
+import { TicketList } from './pages/TicketList'
 
 export function App() {
   const { t } = useTranslation()
@@ -23,7 +24,7 @@ export function App() {
               <Route path="sin-perfil" element={<NoProfile />} />
               <Route element={<Layout />}>
                 <Route element={<RequireRole roles={ALL_ROLES} />}>
-                  <Route path="tickets" element={<Placeholder title={t('nav.tickets')} />} />
+                  <Route path="tickets" element={<TicketList />} />
                   <Route
                     path="tickets/nuevo"
                     element={<Placeholder title={t('pages.newTicket')} />}

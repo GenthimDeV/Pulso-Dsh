@@ -36,6 +36,66 @@
     "newTicket": "New ticket",
     "ticketDetail": "Ticket detail"
   },
+  "duration": {
+    "lessThanMinute": "< 1 min",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "days": "{{count}} d"
+  },
+  "tickets": {
+    "subtitleAgent": "All support tickets · fictional data",
+    "subtitleRequester": "Your support tickets · fictional data",
+    "unassigned": "Unassigned",
+    "loading": "Loading tickets…",
+    "retry": "Retry",
+    "results": "Results",
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "slaBreached": "SLA breached",
+    "status": {
+      "open": "Open",
+      "assigned": "Assigned",
+      "in_progress": "In progress",
+      "resolved": "Resolved"
+    },
+    "priority": {
+      "urgent": "Urgent",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "tabs": {
+      "label": "Filter by status",
+      "all": "All"
+    },
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Subject, code or requester",
+      "priority": "Priority",
+      "agent": "Agent",
+      "allFeminine": "All",
+      "allMasculine": "All",
+      "mine": "Assigned to me",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "ticket": "Ticket",
+      "requester": "Requester",
+      "priority": "Priority",
+      "status": "Status",
+      "agent": "Agent",
+      "updated": "Updated",
+      "waiting": "Waiting"
+    },
+    "empty": {
+      "title": "No tickets match",
+      "hint": "Try another status or clear the filters."
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previous": "Previous page",
+      "next": "Next page"
+    }
+  },
   "auth": {
     "restoring": "Restoring your session…",
     "subtitle": "Support ticket management · demo with fictional data",
