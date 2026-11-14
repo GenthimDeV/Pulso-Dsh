@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isWakingError } from '../api/errors'
@@ -42,8 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear()
   }, [queryClient])
 
+  // Restauración en curso: un login manual la cancela para que su resultado tardío no pise al login.
+  const restoreSignal = useRef<{ cancelled: boolean } | null>(null)
+
   useEffect(() => {
     const signal = { cancelled: false }
+    restoreSignal.current = signal
     restoreWithRetry(signal)
       .then((me) => {
         if (signal.cancelled) return
@@ -67,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (username: string, password: string) => {
+      if (restoreSignal.current) restoreSignal.current.cancelled = true
       const me = await apiLogin(username, password)
       queryClient.clear()
       setUser(me)

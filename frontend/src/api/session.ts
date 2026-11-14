@@ -1,5 +1,5 @@
 import { apiFetch, refreshAccessToken } from './client'
-import { clearTokens, getRefreshToken, setTokens } from './tokens'
+import { clearTokens, getRefreshToken, getSessionGeneration, startSession } from './tokens'
 
 export type Role = 'agent' | 'requester'
 
@@ -28,7 +28,7 @@ export async function login(username: string, password: string): Promise<Me> {
     body: { username, password },
     auth: false,
   })
-  setTokens(tokens.access, tokens.refresh)
+  startSession(tokens.access, tokens.refresh)
   try {
     return await fetchMe()
   } catch (error) {
@@ -40,9 +40,11 @@ export async function login(username: string, password: string): Promise<Me> {
 /** Recupera la sesión guardada (si la hay). `null` = no hay sesión o ya no es válida. */
 export async function restoreSession(): Promise<Me | null> {
   if (!getRefreshToken()) return null
+  const startedAt = getSessionGeneration()
   const access = await refreshAccessToken()
   if (!access) {
-    clearTokens()
+    // Solo se limpia si no hubo login/logout entre medias: no hay que borrar una sesión nueva.
+    if (getSessionGeneration() === startedAt) clearTokens()
     return null
   }
   return fetchMe()

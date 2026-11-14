@@ -17,8 +17,15 @@ export function getRefreshToken(): string | null {
   }
 }
 
-/** Guarda el access y, si llega uno nuevo (el refresh rota en cada uso), también el refresh. */
-export function setTokens(access: string, refresh?: string) {
+// Generación de sesión: sube con cada login y cada limpieza. Una renovación que empezó en una
+// generación anterior no puede escribir sus tokens (evita que reviva o pise una sesión posterior).
+let generation = 0
+
+export function getSessionGeneration(): number {
+  return generation
+}
+
+function writeTokens(access: string, refresh?: string) {
   accessToken = access
   if (refresh === undefined) return
   try {
@@ -28,7 +35,24 @@ export function setTokens(access: string, refresh?: string) {
   }
 }
 
+/** Login nuevo: abre una generación nueva e invalida las renovaciones en vuelo. */
+export function startSession(access: string, refresh: string) {
+  generation++
+  writeTokens(access, refresh)
+}
+
+/**
+ * Guarda los tokens de una renovación (el refresh rota en cada uso). Si la sesión cambió desde que
+ * empezó (`startedAt`), los descarta y devuelve `false`.
+ */
+export function setRefreshedTokens(access: string, refresh: string, startedAt: number): boolean {
+  if (startedAt !== generation) return false
+  writeTokens(access, refresh)
+  return true
+}
+
 export function clearTokens() {
+  generation++
   accessToken = null
   try {
     localStorage.removeItem(REFRESH_KEY)

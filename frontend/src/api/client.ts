@@ -1,5 +1,11 @@
 import { ApiError, isWakingError, NetworkError } from './errors'
-import { getAccessToken, getRefreshToken, expireSession, setTokens } from './tokens'
+import {
+  expireSession,
+  getAccessToken,
+  getRefreshToken,
+  getSessionGeneration,
+  setRefreshedTokens,
+} from './tokens'
 import { markAwake, markWaking, watchSlowRequest } from './serverState'
 
 // Sin barra final. En desarrollo apunta al backend local.
@@ -82,6 +88,7 @@ interface TokenPair {
 let refreshing: Promise<string | null> | null = null
 
 async function doRefresh(): Promise<string | null> {
+  const startedAt = getSessionGeneration()
   const refresh = getRefreshToken()
   if (!refresh) return null
   try {
@@ -90,8 +97,8 @@ async function doRefresh(): Promise<string | null> {
       { method: 'POST', body: { refresh } },
       null,
     )
-    setTokens(data.access, data.refresh)
-    return data.access
+    // Si hubo logout o login mientras tanto, la respuesta es de una sesión que ya no existe.
+    return setRefreshedTokens(data.access, data.refresh, startedAt) ? data.access : null
   } catch (error) {
     // Refresh rechazado (caducado, en blacklist o malformado): no hay forma de recuperar la sesión.
     if (error instanceof ApiError && (error.status === 401 || error.status === 400)) return null
@@ -117,6 +124,7 @@ export function refreshAccessToken(): Promise<string | null> {
  */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   if (options.auth === false) return rawFetch<T>(path, options, null)
+  const startedAt = getSessionGeneration()
   try {
     return await rawFetch<T>(path, options, getAccessToken())
   } catch (error) {
@@ -128,7 +136,8 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
       throw error
     }
     if (!token) {
-      expireSession()
+      // Solo se expulsa si la sesión sigue siendo la misma; si cambió, no se toca la nueva.
+      if (getSessionGeneration() === startedAt) expireSession()
       throw error
     }
     return rawFetch<T>(path, options, token)

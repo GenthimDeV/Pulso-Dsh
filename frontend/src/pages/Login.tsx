@@ -42,7 +42,11 @@ export function Login() {
     return <Navigate to={target} replace />
   }
 
+  // Mientras se restaura la sesión no se permite iniciar otra (evita pisar la restauración).
+  const busy = pending || status === 'loading'
+
   async function submit(name: string, pass: string) {
+    if (busy) return
     setPending(true)
     setError(null)
     try {
@@ -88,7 +92,7 @@ export function Login() {
               <button
                 key={key}
                 type="button"
-                disabled={pending}
+                disabled={busy}
                 onClick={() => void submit(demoUser, DEMO_PASSWORD)}
                 className="rounded-md bg-accent-text px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-text/90 disabled:opacity-60"
               >
@@ -133,7 +137,7 @@ export function Login() {
             </div>
             <button
               type="submit"
-              disabled={pending}
+              disabled={busy}
               className="rounded-md border border-line px-4 py-2 text-sm font-semibold hover:bg-bg disabled:opacity-60"
             >
               {pending ? t('auth.signingIn') : t('auth.signIn')}
