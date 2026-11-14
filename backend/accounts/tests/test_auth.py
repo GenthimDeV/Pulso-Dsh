@@ -163,3 +163,85 @@ def test_cors_permite_el_origen_del_frontend_y_rechaza_otros(client):
 
     assert allowed["Access-Control-Allow-Origin"] == "http://localhost:5173"
     assert "Access-Control-Allow-Origin" not in other
+
+
+# --- Rotación, logout y throttling (3.5) ---
+
+
+@pytest.mark.django_db
+def test_refresh_rota_el_token_y_el_anterior_queda_invalido(client):
+    make_user("ana", "agent")
+    tokens = login(client, "ana")
+
+    first = client.post("/api/v1/auth/token/refresh/", {"refresh": tokens["refresh"]})
+
+    assert first.status_code == 200
+    new_refresh = first.json()["refresh"]
+    assert new_refresh != tokens["refresh"]
+    reused = client.post("/api/v1/auth/token/refresh/", {"refresh": tokens["refresh"]})
+    assert reused.status_code == 401
+    assert client.post("/api/v1/auth/token/refresh/", {"refresh": new_refresh}).status_code == 200
+
+
+@pytest.mark.django_db
+def test_logout_invalida_el_refresh(client):
+    make_user("ana", "agent")
+    tokens = login(client, "ana")
+
+    response = client.post("/api/v1/auth/logout/", {"refresh": tokens["refresh"]})
+
+    assert response.status_code == 200
+    again = client.post("/api/v1/auth/token/refresh/", {"refresh": tokens["refresh"]})
+    assert again.status_code == 401
+
+
+@pytest.mark.django_db
+def test_logout_con_refresh_invalido_devuelve_401(client):
+    response = client.post("/api/v1/auth/logout/", {"refresh": "no-es-un-token"})
+
+    assert response.status_code == 401
+
+
+@pytest.fixture
+def low_rates(monkeypatch):
+    """Tasas bajas y caché limpia; el contador de LocMemCache sobreviviría entre tests."""
+    from django.core.cache import cache
+    from rest_framework.throttling import ScopedRateThrottle
+
+    cache.clear()
+    monkeypatch.setattr(
+        ScopedRateThrottle,
+        "THROTTLE_RATES",
+        {"auth_login": "3/min", "auth_refresh": "2/min"},
+    )
+    yield
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_login_se_limita_con_429_tras_superar_la_tasa(client, low_rates):
+    make_user("ana", "agent")
+    data = {"username": "ana", "password": "mala"}
+
+    statuses = [client.post("/api/v1/auth/token/", data).status_code for _ in range(4)]
+
+    assert statuses == [401, 401, 401, 429]
+
+
+@pytest.mark.django_db
+def test_refresh_se_limita_con_429_tras_superar_la_tasa(client, low_rates):
+    statuses = [
+        client.post("/api/v1/auth/token/refresh/", {"refresh": "x"}).status_code for _ in range(3)
+    ]
+
+    assert statuses == [401, 401, 429]
+
+
+@pytest.mark.django_db
+def test_el_throttling_de_auth_no_afecta_a_me_ni_a_health(client, low_rates):
+    make_user("ana", "agent")
+    tokens = login(client, "ana")
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+
+    assert all(client.get("/api/v1/me/").status_code == 200 for _ in range(6))
+    assert all(client.get("/api/v1/health/").status_code == 200 for _ in range(6))

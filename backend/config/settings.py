@@ -39,7 +39,7 @@ DEBUG = env_bool("DEBUG", False)
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 if not SECRET_KEY:
     if DEBUG:
-        SECRET_KEY = "dev-only-insecure-key"
+        SECRET_KEY = "dev-only-insecure-key-not-for-production-use"
     else:
         raise RuntimeError("SECRET_KEY es obligatoria cuando DEBUG=False")
 
@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "core",
     "accounts",
@@ -142,11 +143,21 @@ REST_FRAMEWORK = {
     ],
     # Todo endpoint exige sesión salvo que declare lo contrario (como /health/ y el login).
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # Solo se limitan login, refresh y logout (ScopedRateThrottle en sus vistas). El contador es
+    # por IP y por proceso (LocMemCache): suficiente para la demo, no un límite global exacto.
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": os.environ.get("THROTTLE_AUTH_LOGIN", "10/min"),
+        "auth_refresh": os.environ.get("THROTTLE_AUTH_REFRESH", "30/min"),
+    },
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Cada refresh entrega un refresh nuevo e invalida el anterior (un refresh robado deja de
+    # servir en cuanto el usuario legítimo renueva); el logout lo invalida en servidor.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # Orígenes del frontend (Cloudflare Pages, Vite en local), separados por comas.
