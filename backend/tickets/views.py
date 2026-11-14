@@ -4,10 +4,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.permissions import IsAgent, IsRequester, user_role
 
-from . import services
+from . import metrics, services
 from .models import Comment, Ticket, TicketEvent
 from .serializers import (
     AssignInputSerializer,
@@ -206,3 +207,24 @@ class TicketViewSet(
             return self._service_error(error)
         data = CommentSerializer(comment, context=self.get_serializer_context()).data
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class MetricsSummaryView(APIView):
+    """`GET /metrics/summary/?range=today|7d|30d` (solo agentes)."""
+
+    permission_classes = [IsAgent]
+
+    def get(self, request):
+        range_code = request.query_params.get("range") or metrics.DEFAULT_RANGE
+        if range_code not in metrics.RANGES:
+            raise ValidationError({"range": "invalid_choice"})
+        return Response(metrics.summary(range_code))
+
+
+class AgentListView(APIView):
+    """`GET /agents/`: agentes con su carga frente a la capacidad (solo agentes)."""
+
+    permission_classes = [IsAgent]
+
+    def get(self, request):
+        return Response(metrics.agent_loads())
