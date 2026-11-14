@@ -124,7 +124,8 @@ class TicketViewSet(
             else:
                 raise ValidationError({"assignee": "invalid"})
 
-        term = params.get("search", "").strip()
+        # Postgres rechaza el NUL en un literal (500); SQLite no, y solo fallaba en producción.
+        term = params.get("search", "").replace("\x00", "").strip()
         if term:
             queryset = queryset.filter(
                 Q(subject__icontains=term)

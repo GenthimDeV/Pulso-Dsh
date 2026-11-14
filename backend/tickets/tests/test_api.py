@@ -184,6 +184,14 @@ def test_busca_por_asunto_codigo_y_solicitante(agent, ana, beto, category):
     assert client.get(URL, {"search": "inexistente"}).json()["count"] == 0
 
 
+def test_la_busqueda_ignora_el_caracter_nul(agent, ana, category):
+    ticket = make_ticket(ana, category, subject="Impresora atascada")
+    client = client_for(agent)
+
+    assert codes(client.get(URL, {"search": "impre\x00sora"})) == [ticket.code]
+    assert client.get(URL, {"search": "\x00"}).status_code == 200
+
+
 def test_los_filtros_respetan_la_visibilidad_del_solicitante(ana, beto, category):
     make_ticket(beto, category, subject="Impresora de Beto")
 
