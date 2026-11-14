@@ -1,0 +1,115 @@
+"""Reglas de negocio de los tickets. Las vistas llaman aquí; no repiten la lógica."""
+
+from django.db import transaction
+from django.utils import timezone
+
+from .models import Ticket, TicketEvent
+
+Status = Ticket.Status
+
+# Máquina de estados (brief §4): desde -> destinos permitidos.
+TRANSITIONS = {
+    Status.OPEN: {Status.ASSIGNED},
+    Status.ASSIGNED: {Status.IN_PROGRESS, Status.OPEN},
+    Status.IN_PROGRESS: {Status.RESOLVED, Status.ASSIGNED},
+    Status.RESOLVED: {Status.IN_PROGRESS},
+}
+
+
+class TransitionError(Exception):
+    """Base de los errores de transición. `code` es el código estable para la API."""
+
+    code = "transition_error"
+
+    def __init__(self, message=""):
+        super().__init__(message or self.code)
+
+
+class InvalidTransition(TransitionError):
+    """La tabla no permite ir de `from_status` a `to_status` (la API responde 409)."""
+
+    code = "invalid_transition"
+
+    def __init__(self, from_status, to_status):
+        self.from_status = from_status
+        self.to_status = to_status
+        super().__init__(f"No se puede pasar de {from_status} a {to_status}.")
+
+
+class AssigneeRequired(TransitionError):
+    """Pasar a `assigned` exige un agente asignado."""
+
+    code = "assignee_required"
+
+
+class NotAnAgent(TransitionError):
+    """Solo los agentes cambian estados (y solo agentes pueden ser asignados)."""
+
+    code = "not_an_agent"
+
+
+def allowed_transitions(status):
+    """Destinos válidos desde `status` (la UI los usa para habilitar los botones)."""
+    return set(TRANSITIONS.get(status, ()))
+
+
+def _is_agent(user):
+    profile = getattr(user, "profile", None)
+    return bool(user and profile and profile.is_agent)
+
+
+@transaction.atomic
+def transition(ticket, to_status, actor, assignee=None):
+    """Mueve `ticket` a `to_status` y registra un TicketEvent.
+
+    - Solo un agente puede ejecutarla.
+    - `assigned` exige un asignado: `assignee` o el que ya tenga el ticket; debe ser agente.
+    - `assigned -> open` desasigna; `resolved` rellena `resolved_at`; reabrir lo limpia.
+    """
+    if not _is_agent(actor):
+        raise NotAnAgent("Solo los agentes pueden cambiar el estado de un ticket.")
+
+    # Relee el estado con bloqueo de fila para no transicionar sobre datos obsoletos.
+    current = Ticket.objects.select_for_update().get(pk=ticket.pk)
+    from_status = current.status
+
+    if to_status not in TRANSITIONS.get(from_status, ()):
+        raise InvalidTransition(from_status, to_status)
+
+    event_type = TicketEvent.Type.STATUS_CHANGED
+    now = timezone.now()
+
+    if to_status == Status.ASSIGNED:
+        new_assignee = assignee or current.assignee
+        if new_assignee is None:
+            raise AssigneeRequired("Pasar a 'assigned' exige un agente asignado.")
+        if not _is_agent(new_assignee):
+            raise NotAnAgent("Solo un agente puede ser asignado a un ticket.")
+        if from_status == Status.OPEN or new_assignee != current.assignee:
+            event_type = TicketEvent.Type.ASSIGNED
+        current.assignee = new_assignee
+    elif to_status == Status.OPEN:
+        current.assignee = None
+
+    if to_status == Status.RESOLVED:
+        current.resolved_at = now
+    elif from_status == Status.RESOLVED:
+        current.resolved_at = None
+
+    current.status = to_status
+    current.save(update_fields=["status", "assignee", "resolved_at", "updated_at"])
+    TicketEvent.objects.create(
+        ticket=current,
+        actor=actor,
+        type=event_type,
+        from_status=from_status,
+        to_status=to_status,
+        created_at=now,
+    )
+
+    # Deja el objeto del llamador sincronizado con lo guardado.
+    ticket.status = current.status
+    ticket.assignee = current.assignee
+    ticket.resolved_at = current.resolved_at
+    ticket.updated_at = current.updated_at
+    return ticket
