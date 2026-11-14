@@ -1,18 +1,21 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthContext'
 import { ApiStatus } from './ApiStatus'
 
 const ITEMS = [
-  { to: '/', key: 'dashboard', end: true },
-  { to: '/tickets', key: 'tickets', end: false },
-  { to: '/asignados', key: 'assigned', end: false },
-  { to: '/agentes', key: 'agents', end: false },
-  { to: '/informes', key: 'reports', end: false },
+  { to: '/', key: 'dashboard', end: true, agentOnly: true },
+  { to: '/tickets', key: 'tickets', end: false, agentOnly: false },
+  { to: '/asignados', key: 'assigned', end: false, agentOnly: true },
+  { to: '/agentes', key: 'agents', end: false, agentOnly: true },
+  { to: '/informes', key: 'reports', end: false, agentOnly: true },
 ] as const
 
 /** Menú lateral oscuro; en móvil pasa arriba y sus enlaces hacen scroll horizontal. */
 export function Sidebar() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const items = ITEMS.filter((item) => !item.agentOnly || user?.role === 'agent')
   return (
     <aside className="flex shrink-0 flex-col gap-2 bg-sidebar p-3 text-slate-200 md:w-60 md:gap-6 md:p-4">
       <div className="flex items-center justify-between">
@@ -23,7 +26,7 @@ export function Sidebar() {
       </div>
       <nav aria-label={t('nav.main')} className="-mx-1 overflow-x-auto px-1">
         <ul className="flex gap-1 md:flex-col">
-          {ITEMS.map(({ to, key, end }) => (
+          {items.map(({ to, key, end }) => (
             <li key={key}>
               <NavLink
                 to={to}

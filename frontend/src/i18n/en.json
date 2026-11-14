@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Pulso" },
+  "app": {
+    "name": "Pulso"
+  },
   "nav": {
     "main": "Main navigation",
     "dashboard": "Dashboard",
@@ -33,5 +35,32 @@
     "backHome": "Back to the dashboard",
     "newTicket": "New ticket",
     "ticketDetail": "Ticket detail"
+  },
+  "auth": {
+    "restoring": "Restoring your session…",
+    "subtitle": "Support ticket management · demo with fictional data",
+    "demo": {
+      "agent": "Sign in as agent",
+      "requester": "Sign in as requester"
+    },
+    "or": "or with your account",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "logout": "Sign out",
+    "role": {
+      "agent": "Agent",
+      "requester": "Requester"
+    },
+    "errors": {
+      "invalid": "Wrong username or password.",
+      "throttled": "Too many attempts. Wait a minute and try again.",
+      "unreachable": "Could not reach the server. If it was asleep, try again in a few seconds."
+    },
+    "noProfile": {
+      "title": "Account without a profile",
+      "body": "This account is neither an agent nor a requester, so it cannot use the app."
+    }
   }
 }

@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../auth/AuthContext'
 import { LANGUAGES, setLanguage, type Language } from '../i18n'
 
 /** Cabecera: búsqueda, idioma, notificaciones (decorativas en el demo) y "Nuevo ticket". */
 export function Header() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [query, setQuery] = useState('')
 
   function onSearch(event: FormEvent) {
@@ -71,6 +73,26 @@ export function Header() {
       >
         {t('header.newTicket')}
       </Link>
+
+      {user && (
+        <div className="flex items-center gap-3 border-l border-line pl-3">
+          <div className="text-right text-sm leading-tight">
+            <p className="font-medium">
+              {user.first_name || user.last_name
+                ? `${user.first_name} ${user.last_name}`.trim()
+                : user.username}
+            </p>
+            {user.role && <p className="text-text-3">{t(`auth.role.${user.role}`)}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="rounded-md border border-line px-3 py-2 text-sm font-medium hover:bg-bg"
+          >
+            {t('auth.logout')}
+          </button>
+        </div>
+      )}
     </header>
   )
 }

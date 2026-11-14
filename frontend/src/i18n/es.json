@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Pulso" },
+  "app": {
+    "name": "Pulso"
+  },
   "nav": {
     "main": "Navegación principal",
     "dashboard": "Panel",
@@ -33,5 +35,32 @@
     "backHome": "Volver al panel",
     "newTicket": "Nuevo ticket",
     "ticketDetail": "Detalle del ticket"
+  },
+  "auth": {
+    "restoring": "Restaurando la sesión…",
+    "subtitle": "Gestión de tickets de soporte · demo con datos ficticios",
+    "demo": {
+      "agent": "Entrar como agente",
+      "requester": "Entrar como solicitante"
+    },
+    "or": "o con tu cuenta",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "signIn": "Iniciar sesión",
+    "signingIn": "Entrando…",
+    "logout": "Salir",
+    "role": {
+      "agent": "Agente",
+      "requester": "Solicitante"
+    },
+    "errors": {
+      "invalid": "Usuario o contraseña incorrectos.",
+      "throttled": "Demasiados intentos. Espera un minuto y vuelve a probar.",
+      "unreachable": "No se pudo conectar con el servidor. Si estaba dormido, vuelve a intentarlo en unos segundos."
+    },
+    "noProfile": {
+      "title": "Cuenta sin perfil",
+      "body": "Esta cuenta no es de agente ni de solicitante, así que no puede usar la aplicación."
+    }
   }
 }

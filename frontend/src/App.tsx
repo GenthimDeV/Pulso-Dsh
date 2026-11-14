@@ -2,7 +2,12 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { queryClient } from './api/queryClient'
+import { AuthProvider } from './auth/AuthContext'
+import { RequireAuth, RequireRole } from './auth/guards'
+import { AGENT_ONLY, ALL_ROLES } from './auth/roles'
 import { Layout } from './components/Layout'
+import { Login } from './pages/Login'
+import { NoProfile } from './pages/NoProfile'
 import { NotFound } from './pages/NotFound'
 import { Placeholder } from './pages/Placeholder'
 
@@ -11,18 +16,34 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<Placeholder title={t('nav.dashboard')} />} />
-            <Route path="tickets" element={<Placeholder title={t('nav.tickets')} />} />
-            <Route path="tickets/nuevo" element={<Placeholder title={t('pages.newTicket')} />} />
-            <Route path="tickets/:code" element={<Placeholder title={t('pages.ticketDetail')} />} />
-            <Route path="asignados" element={<Placeholder title={t('nav.assigned')} />} />
-            <Route path="agentes" element={<Placeholder title={t('nav.agents')} />} />
-            <Route path="informes" element={<Placeholder title={t('nav.reports')} />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="login" element={<Login />} />
+            <Route element={<RequireAuth />}>
+              <Route path="sin-perfil" element={<NoProfile />} />
+              <Route element={<Layout />}>
+                <Route element={<RequireRole roles={ALL_ROLES} />}>
+                  <Route path="tickets" element={<Placeholder title={t('nav.tickets')} />} />
+                  <Route
+                    path="tickets/nuevo"
+                    element={<Placeholder title={t('pages.newTicket')} />}
+                  />
+                  <Route
+                    path="tickets/:code"
+                    element={<Placeholder title={t('pages.ticketDetail')} />}
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+                <Route element={<RequireRole roles={AGENT_ONLY} />}>
+                  <Route index element={<Placeholder title={t('nav.dashboard')} />} />
+                  <Route path="asignados" element={<Placeholder title={t('nav.assigned')} />} />
+                  <Route path="agentes" element={<Placeholder title={t('nav.agents')} />} />
+                  <Route path="informes" element={<Placeholder title={t('nav.reports')} />} />
+                </Route>
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )
