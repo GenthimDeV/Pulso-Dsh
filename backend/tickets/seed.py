@@ -65,7 +65,9 @@ def demo_password():
 def wipe():
     """Borra los tickets (con comentarios e historial), las categorías y las cuentas del seed.
 
-    Los usuarios que no son de demo no se tocan.
+    Las cuentas de demo se identifican solo por su nombre de usuario (`demo_usernames`): un
+    usuario real con uno de esos nombres también se borraría, y `is_seeded` lo tomaría por
+    datos de demo. Los nombres están reservados para el seed. Los demás usuarios no se tocan.
     """
     counts = {"tickets": Ticket.objects.count()}
     Ticket.objects.all().delete()

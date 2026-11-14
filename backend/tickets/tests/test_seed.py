@@ -198,6 +198,19 @@ def test_reset_demo_restaura_y_respeta_otros_usuarios(seeded):
     assert get_user_model().objects.count() == len(seed.demo_usernames()) + 1
 
 
+def test_reset_demo_es_atomico_si_el_seed_falla(seeded, monkeypatch):
+    before = snapshot()
+
+    def broken_seed(*args, **kwargs):
+        raise RuntimeError("fallo del seed")
+
+    monkeypatch.setattr(seed, "seed", broken_seed)
+    with pytest.raises(RuntimeError):
+        call_command("reset_demo", "--yes", stdout=StringIO())
+    assert snapshot() == before  # el borrado se deshizo
+    assert get_user_model().objects.count() == len(seed.demo_usernames())
+
+
 def test_reset_demo_sin_confirmacion_no_borra(seeded, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda _: "n")
     out = StringIO()
