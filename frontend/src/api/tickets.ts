@@ -80,6 +80,66 @@ export function fetchAgents(signal?: AbortSignal): Promise<Agent[]> {
   return apiFetch<Agent[]>('/agents/', { signal })
 }
 
+export interface TicketComment {
+  id: number
+  author: UserRef
+  body: string
+  is_internal: boolean
+  created_at: string
+}
+
+export type TicketEventType =
+  'created' | 'assigned' | 'status_changed' | 'commented' | 'internal_note'
+
+export interface TicketEvent {
+  id: number
+  type: TicketEventType
+  actor: UserRef | null
+  from_status: Status | ''
+  to_status: Status | ''
+  created_at: string
+}
+
+export interface TicketDetail extends TicketListItem {
+  description: string
+  comments: TicketComment[]
+  events: TicketEvent[]
+  allowed_transitions: Status[]
+}
+
+export function fetchTicket(code: string, signal?: AbortSignal): Promise<TicketDetail> {
+  return apiFetch<TicketDetail>(`/tickets/${encodeURIComponent(code)}/`, { signal })
+}
+
+export function transitionTicket(
+  code: string,
+  to: Status,
+  assignee?: number,
+): Promise<TicketDetail> {
+  return apiFetch<TicketDetail>(`/tickets/${encodeURIComponent(code)}/transition/`, {
+    method: 'POST',
+    body: assignee === undefined ? { to } : { to, assignee },
+  })
+}
+
+export function assignTicket(code: string, assignee: number): Promise<TicketDetail> {
+  return apiFetch<TicketDetail>(`/tickets/${encodeURIComponent(code)}/assign/`, {
+    method: 'POST',
+    body: { assignee },
+  })
+}
+
+export function addComment(
+  code: string,
+  body: string,
+  isInternal: boolean,
+): Promise<TicketComment> {
+  return apiFetch<TicketComment>(`/tickets/${encodeURIComponent(code)}/comments/`, {
+    method: 'POST',
+    body: { body, is_internal: isInternal },
+  })
+}
+
 /** Nombre para mostrar: "Nombre Apellido", o el usuario si no los tiene. */
 export function displayName(user: Pick<UserRef, 'username' | 'first_name' | 'last_name'>): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.username

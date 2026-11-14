@@ -10,6 +10,7 @@ import { Login } from './pages/Login'
 import { NoProfile } from './pages/NoProfile'
 import { NotFound } from './pages/NotFound'
 import { Placeholder } from './pages/Placeholder'
+import { TicketDetail } from './pages/TicketDetail'
 import { TicketList } from './pages/TicketList'
 
 export function App() {
@@ -29,10 +30,7 @@ export function App() {
                     path="tickets/nuevo"
                     element={<Placeholder title={t('pages.newTicket')} />}
                   />
-                  <Route
-                    path="tickets/:code"
-                    element={<Placeholder title={t('pages.ticketDetail')} />}
-                  />
+                  <Route path="tickets/:code" element={<TicketDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route element={<RequireRole roles={AGENT_ONLY} />}>

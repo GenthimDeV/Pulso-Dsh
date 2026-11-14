@@ -14,21 +14,17 @@ import {
   type Status,
   type TicketFilters,
   type TicketListItem,
-  type UserRef,
 } from '../api/tickets'
 import { useAuth } from '../auth/AuthContext'
-import { PriorityBadge, STATUS_DOT_CLASSES, StatusBadge } from '../components/TicketBadges'
+import {
+  PriorityBadge,
+  STATUS_DOT_CLASSES,
+  StatusBadge,
+  UserAvatar,
+} from '../components/TicketBadges'
 import { useFormatters } from '../i18n/format'
 
 const SEARCH_DEBOUNCE_MS = 300
-const AVATAR_CLASSES = [
-  'bg-[#9ec5ff]',
-  'bg-[#f2c66d]',
-  'bg-[#8fe3cf]',
-  'bg-[#c7b6ff]',
-  'bg-[#ffb59a]',
-] as const
-
 const FIELD_CLASSES =
   'h-10 rounded-md border border-line bg-surface px-3 text-sm text-text placeholder:text-text-3'
 const PAGE_BUTTON_CLASSES =
@@ -47,12 +43,6 @@ function parseAssignee(value: string | null): string | undefined {
 function parsePage(value: string | null): number {
   const page = Number(value)
   return Number.isInteger(page) && page > 0 ? page : 1
-}
-
-function initials(user: UserRef): string {
-  const first = user.first_name.charAt(0)
-  const last = user.last_name.charAt(0)
-  return (first + last || user.username.slice(0, 2)).toUpperCase()
 }
 
 /** Hasta 5 números de página alrededor de la actual. */
@@ -451,14 +441,7 @@ function TicketRow({ ticket, showRequester, now }: TicketRowProps) {
       <td className="px-3 py-3.5">
         {ticket.assignee ? (
           <span className="inline-flex items-center gap-2 text-text-2">
-            <span
-              aria-hidden="true"
-              className={`grid size-6.5 place-items-center rounded-full text-[0.6875rem] font-bold text-text ${
-                AVATAR_CLASSES[ticket.assignee.id % AVATAR_CLASSES.length]
-              }`}
-            >
-              {initials(ticket.assignee)}
-            </span>
+            <UserAvatar user={ticket.assignee} className="size-6.5 text-[0.6875rem]" />
             {displayName(ticket.assignee)}
           </span>
         ) : (

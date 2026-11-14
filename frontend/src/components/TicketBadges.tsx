@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { Priority, Status } from '../api/tickets'
+import type { Priority, Status, UserRef } from '../api/tickets'
 
 // Clases completas (no construidas por interpolación) para que Tailwind las detecte.
 const PRIORITY_CLASSES: Record<Priority, string> = {
@@ -14,6 +14,34 @@ export const STATUS_DOT_CLASSES: Record<Status, string> = {
   assigned: 'bg-st-assigned',
   in_progress: 'bg-st-in-progress',
   resolved: 'bg-st-resolved',
+}
+
+const AVATAR_CLASSES = [
+  'bg-[#9ec5ff]',
+  'bg-[#f2c66d]',
+  'bg-[#8fe3cf]',
+  'bg-[#c7b6ff]',
+  'bg-[#ffb59a]',
+] as const
+
+export function initials(user: UserRef): string {
+  const first = user.first_name.charAt(0)
+  const last = user.last_name.charAt(0)
+  return (first + last || user.username.slice(0, 2)).toUpperCase()
+}
+
+/** Círculo con las iniciales; el color sale del id para que sea estable. `className` fija el tamaño. */
+export function UserAvatar({ user, className }: { user: UserRef; className: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid shrink-0 place-items-center rounded-full font-bold text-text ${className} ${
+        AVATAR_CLASSES[user.id % AVATAR_CLASSES.length]
+      }`}
+    >
+      {initials(user)}
+    </span>
+  )
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
