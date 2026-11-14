@@ -401,3 +401,258 @@ def test_el_ticket_creado_aparece_en_la_lista_del_solicitante(ana, category):
     created = client_for(ana).post(URL, payload(category), format="json").json()
 
     assert codes(client_for(ana).get(URL)) == [created["code"]]
+
+
+# --- Transiciones, asignación y comentarios ----------------------------------
+
+
+def act(ticket, action):
+    return f"{URL}{ticket.code}/{action}/"
+
+
+def post(user, ticket, action, body):
+    return client_for(user).post(act(ticket, action), body, format="json")
+
+
+def test_acciones_sin_token_devuelven_401(ana, category):
+    ticket = make_ticket(ana, category)
+
+    for action in ("transition", "assign", "comments"):
+        assert APIClient().post(act(ticket, action), {}, format="json").status_code == 401
+
+
+def test_agente_asigna_un_ticket_abierto(agent, other_agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "assign", {"assignee": other_agent.pk})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == S.ASSIGNED
+    assert data["assignee"]["id"] == other_agent.pk
+    assert data["allowed_transitions"] == ["in_progress", "open"]
+    assert data["events"][-1]["type"] == "assigned"
+    assert data["events"][-1]["actor"]["id"] == agent.pk
+
+
+def test_agente_reasigna_sin_cambiar_el_estado(agent, other_agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.IN_PROGRESS, assignee=agent)
+
+    response = post(agent, ticket, "assign", {"assignee": other_agent.pk})
+
+    assert response.status_code == 200
+    assert response.json()["status"] == S.IN_PROGRESS
+    ticket.refresh_from_db()
+    assert ticket.assignee == other_agent
+    event = ticket.events.get()
+    assert (event.type, event.from_status, event.to_status) == (
+        "assigned",
+        S.IN_PROGRESS,
+        S.IN_PROGRESS,
+    )
+
+
+def test_reasignar_al_mismo_agente_no_crea_evento(agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.ASSIGNED, assignee=agent)
+
+    response = post(agent, ticket, "assign", {"assignee": agent.pk})
+
+    assert response.status_code == 200
+    assert not ticket.events.exists()
+
+
+def test_asignar_un_ticket_resuelto_devuelve_409(agent, other_agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.RESOLVED, assignee=agent)
+
+    response = post(agent, ticket, "assign", {"assignee": other_agent.pk})
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "invalid_transition"
+
+
+@pytest.mark.parametrize("status_", [S.OPEN, S.ASSIGNED])
+def test_asignar_a_alguien_que_no_es_agente_devuelve_400(agent, ana, beto, category, status_):
+    current = None if status_ == S.OPEN else agent
+    ticket = make_ticket(ana, category, status=status_, assignee=current)
+
+    response = post(agent, ticket, "assign", {"assignee": beto.pk})
+
+    assert response.status_code == 400
+    assert response.json() == {"code": "invalid_assignee"}
+    ticket.refresh_from_db()
+    assert (ticket.status, ticket.assignee) == (status_, current)
+
+
+@pytest.mark.parametrize("body", [{}, {"assignee": 999999}, {"assignee": "x"}, {"assignee": None}])
+def test_asignar_con_datos_invalidos_devuelve_400(agent, ana, category, body):
+    ticket = make_ticket(ana, category)
+
+    assert post(agent, ticket, "assign", body).status_code == 400
+
+
+def test_solicitante_no_puede_asignar_ni_transicionar(ana, agent, category):
+    ticket = make_ticket(ana, category)
+
+    assert post(ana, ticket, "assign", {"assignee": agent.pk}).status_code == 403
+    assert post(ana, ticket, "transition", {"to": "assigned"}).status_code == 403
+    ticket.refresh_from_db()
+    assert ticket.status == S.OPEN
+
+
+def test_usuario_sin_perfil_no_puede_actuar(ana, category):
+    ticket = make_ticket(ana, category)
+    user = make_user("sinperfil")
+
+    for action in ("transition", "assign", "comments"):
+        assert post(user, ticket, action, {}).status_code == 403
+
+
+def test_transicion_valida_devuelve_el_detalle(agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.ASSIGNED, assignee=agent)
+
+    response = post(agent, ticket, "transition", {"to": "in_progress"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == S.IN_PROGRESS
+    assert data["allowed_transitions"] == ["assigned", "resolved"]
+    last = data["events"][-1]
+    assert (last["type"], last["from_status"], last["to_status"]) == (
+        "status_changed",
+        "assigned",
+        "in_progress",
+    )
+
+
+def test_transicion_a_assigned_con_assignee_en_el_cuerpo(agent, other_agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "transition", {"to": "assigned", "assignee": other_agent.pk})
+
+    assert response.status_code == 200
+    assert response.json()["assignee"]["id"] == other_agent.pk
+
+
+def test_resolver_rellena_resolved_at(agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.IN_PROGRESS, assignee=agent)
+
+    data = post(agent, ticket, "transition", {"to": "resolved"}).json()
+
+    assert data["resolved_at"] is not None
+
+
+def test_transicion_invalida_devuelve_409_con_codigo(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "transition", {"to": "resolved"})
+
+    assert response.status_code == 409
+    assert response.json() == {"code": "invalid_transition", "from": "open", "to": "resolved"}
+    ticket.refresh_from_db()
+    assert ticket.status == S.OPEN
+    assert not ticket.events.exists()
+
+
+def test_pasar_a_assigned_sin_asignado_devuelve_400(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "transition", {"to": "assigned"})
+
+    assert response.status_code == 400
+    assert response.json() == {"code": "assignee_required"}
+
+
+def test_assignee_en_una_transicion_que_no_asigna_devuelve_400(agent, other_agent, ana, category):
+    ticket = make_ticket(ana, category, status=S.ASSIGNED, assignee=agent)
+
+    response = post(agent, ticket, "transition", {"to": "in_progress", "assignee": other_agent.pk})
+
+    assert response.status_code == 400
+    assert response.json() == {"code": "invalid_assignee"}
+
+
+@pytest.mark.parametrize("body", [{}, {"to": "nope"}, {"to": "assigned", "assignee": 999999}])
+def test_transicion_con_datos_invalidos_devuelve_400(agent, ana, category, body):
+    ticket = make_ticket(ana, category)
+
+    assert post(agent, ticket, "transition", body).status_code == 400
+
+
+def test_transicion_de_un_codigo_inexistente_devuelve_404(agent):
+    response = client_for(agent).post(f"{URL}TK-0/transition/", {"to": "assigned"}, format="json")
+
+    assert response.status_code == 404
+
+
+def test_solicitante_comenta_su_ticket(ana, agent, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(ana, ticket, "comments", {"body": "Sigue igual"})
+
+    assert response.status_code == 201
+    data = response.json()
+    assert (data["body"], data["is_internal"], data["author"]["id"]) == (
+        "Sigue igual",
+        False,
+        ana.pk,
+    )
+    assert ticket.events.get().type == "commented"
+    detail = client_for(agent).get(f"{URL}{ticket.code}/").json()
+    assert [c["body"] for c in detail["comments"]] == ["Sigue igual"]
+
+
+def test_solicitante_no_comenta_un_ticket_ajeno(ana, beto, category):
+    ticket = make_ticket(beto, category)
+
+    response = post(ana, ticket, "comments", {"body": "Hola"})
+
+    assert response.status_code == 404
+    assert not Comment.objects.exists()
+
+
+def test_solicitante_no_puede_escribir_notas_internas(ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(ana, ticket, "comments", {"body": "Hola", "is_internal": True})
+
+    assert response.status_code == 403
+    assert response.json() == {"code": "not_an_agent"}
+    assert not Comment.objects.exists()
+    assert not ticket.events.exists()
+
+
+def test_agente_escribe_nota_interna_y_el_solicitante_no_la_ve(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "comments", {"body": "Secreto", "is_internal": True})
+
+    assert response.status_code == 201
+    assert response.json()["is_internal"] is True
+    assert ticket.events.get().type == "internal_note"
+    detail = client_for(ana).get(f"{URL}{ticket.code}/").json()
+    assert "Secreto" not in str(detail)
+    assert detail["events"] == []
+
+
+def test_agente_comenta_cualquier_ticket(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    response = post(agent, ticket, "comments", {"body": "En ello"})
+
+    assert response.status_code == 201
+    assert response.json()["author"]["id"] == agent.pk
+
+
+@pytest.mark.parametrize("body", [{}, {"body": ""}, {"body": "   "}, {"body": "x" * 5001}])
+def test_comentario_invalido_devuelve_400(ana, category, body):
+    ticket = make_ticket(ana, category)
+
+    assert post(ana, ticket, "comments", body).status_code == 400
+    assert not Comment.objects.exists()
+
+
+def test_las_acciones_no_aceptan_get(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    for action in ("transition", "assign", "comments"):
+        assert client_for(agent).get(act(ticket, action)).status_code == 405

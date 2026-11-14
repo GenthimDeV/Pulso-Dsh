@@ -101,6 +101,24 @@ class TicketDetailSerializer(TicketListSerializer):
         return sorted(allowed_transitions(ticket.status))
 
 
+class TransitionInputSerializer(serializers.Serializer):
+    """Entrada de POST /tickets/{code}/transition/. `assignee` solo vale al pasar a `assigned`."""
+
+    to = serializers.ChoiceField(choices=Ticket.Status.choices)
+    assignee = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+
+
+class AssignInputSerializer(serializers.Serializer):
+    assignee = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+
+class CommentInputSerializer(serializers.Serializer):
+    body = serializers.CharField(max_length=5000)
+    is_internal = serializers.BooleanField(default=False)
+
+
 class TicketCreateSerializer(serializers.ModelSerializer):
     """Entrada de POST /tickets/. `requester`, `status` y el SLA los fija el servidor."""
 

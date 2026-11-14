@@ -3,7 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Ticket, TicketEvent
+from .models import Comment, Ticket, TicketEvent
 
 Status = Ticket.Status
 
@@ -139,9 +139,68 @@ def transition(ticket, to_status, actor, assignee=None):
         created_at=now,
     )
 
-    # Deja el objeto del llamador sincronizado con lo guardado.
+    _sync(ticket, current)
+    return ticket
+
+
+def _sync(ticket, current):
+    """Deja el objeto del llamador sincronizado con lo guardado."""
     ticket.status = current.status
     ticket.assignee = current.assignee
     ticket.resolved_at = current.resolved_at
     ticket.updated_at = current.updated_at
+
+
+@transaction.atomic
+def assign(ticket, assignee, actor):
+    """Asigna `ticket` a `assignee` (agente) sin cambiar su estado salvo en `open`.
+
+    - `open` -> `assigned` (misma regla que `transition`).
+    - `assigned` / `in_progress`: reasigna y registra un evento `assigned` con el mismo estado.
+    - `resolved`: no se reasigna (hay que reabrirlo antes): `InvalidTransition`.
+    """
+    if not _is_agent(actor):
+        raise NotAnAgent("Solo los agentes pueden asignar un ticket.")
+
+    current = Ticket.objects.select_for_update().get(pk=ticket.pk)
+
+    if current.status == Status.OPEN:
+        return transition(ticket, Status.ASSIGNED, actor, assignee=assignee)
+    if current.status == Status.RESOLVED:
+        raise InvalidTransition(current.status, current.status)
+    if not _is_agent(assignee):
+        raise InvalidAssignee("Solo un agente puede ser asignado a un ticket.")
+    if assignee == current.assignee:
+        return ticket  # sin cambios: no se ensucia el historial
+
+    now = timezone.now()
+    current.assignee = assignee
+    current.save(update_fields=["assignee", "updated_at"])
+    TicketEvent.objects.create(
+        ticket=current,
+        actor=actor,
+        type=TicketEvent.Type.ASSIGNED,
+        from_status=current.status,
+        to_status=current.status,
+        created_at=now,
+    )
+    _sync(ticket, current)
     return ticket
+
+
+@transaction.atomic
+def add_comment(ticket, author, body, is_internal=False):
+    """Añade un comentario (o nota interna) y su evento. Las notas internas son solo de agentes."""
+    if is_internal and not _is_agent(author):
+        raise NotAnAgent("Solo los agentes pueden escribir notas internas.")
+
+    comment = Comment.objects.create(
+        ticket=ticket, author=author, body=body, is_internal=is_internal
+    )
+    TicketEvent.objects.create(
+        ticket=ticket,
+        actor=author,
+        type=TicketEvent.Type.INTERNAL_NOTE if is_internal else TicketEvent.Type.COMMENTED,
+        created_at=comment.created_at,
+    )
+    return comment

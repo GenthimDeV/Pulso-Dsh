@@ -1,14 +1,31 @@
 from django.db.models import Case, IntegerField, Prefetch, Q, Value, When
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from accounts.permissions import IsAgent, IsRequester, user_role
 
+from . import services
 from .models import Comment, Ticket, TicketEvent
-from .serializers import TicketCreateSerializer, TicketDetailSerializer, TicketListSerializer
-from .services import create_ticket
+from .serializers import (
+    AssignInputSerializer,
+    CommentInputSerializer,
+    CommentSerializer,
+    TicketCreateSerializer,
+    TicketDetailSerializer,
+    TicketListSerializer,
+    TransitionInputSerializer,
+)
+from .services import InvalidTransition, TransitionError, create_ticket
+
+# Código de error del servicio -> HTTP (los no listados, p. ej. assignee_required, son 400).
+SERVICE_ERROR_STATUS = {
+    "invalid_transition": status.HTTP_409_CONFLICT,
+    "not_an_agent": status.HTTP_403_FORBIDDEN,
+    "invalid_assignee": status.HTTP_400_BAD_REQUEST,
+}
 
 # Orden por gravedad (no alfabético): urgent < high < medium < low.
 PRIORITY_BY_SEVERITY = [
@@ -130,11 +147,62 @@ class TicketViewSet(
         # `pk` desempata para que la paginación sea estable.
         return queryset.order_by(f"-{field}" if descending else field, "-pk")
 
+    def _detail_response(self, ticket, status_code=status.HTTP_200_OK):
+        # Se relee con el queryset de detalle para devolver la misma forma que GET.
+        ticket = self._with_detail(self._visible()).get(pk=ticket.pk)
+        data = TicketDetailSerializer(ticket, context=self.get_serializer_context()).data
+        return Response(data, status=status_code)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         ticket = create_ticket(requester=request.user, **serializer.validated_data)
-        # Se relee con el queryset de detalle para devolver la misma forma que GET.
-        ticket = self._with_detail(self._visible()).get(pk=ticket.pk)
-        data = TicketDetailSerializer(ticket, context=self.get_serializer_context()).data
+        return self._detail_response(ticket, status.HTTP_201_CREATED)
+
+    @staticmethod
+    def _service_error(error):
+        """Traduce un error del servicio a respuesta: solo códigos, nunca textos."""
+        body = {"code": error.code}
+        if isinstance(error, InvalidTransition):
+            body.update({"from": error.from_status, "to": error.to_status})
+        return Response(body, status=SERVICE_ERROR_STATUS.get(error.code, 400))
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAgent])
+    def transition(self, request, code=None):
+        ticket = self.get_object()
+        serializer = TransitionInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            services.transition(
+                ticket,
+                serializer.validated_data["to"],
+                request.user,
+                assignee=serializer.validated_data.get("assignee"),
+            )
+        except TransitionError as error:
+            return self._service_error(error)
+        return self._detail_response(ticket)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAgent])
+    def assign(self, request, code=None):
+        ticket = self.get_object()
+        serializer = AssignInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            services.assign(ticket, serializer.validated_data["assignee"], request.user)
+        except TransitionError as error:
+            return self._service_error(error)
+        return self._detail_response(ticket)
+
+    @action(detail=True, methods=["post"])
+    def comments(self, request, code=None):
+        # `get_object` ya da 404 al solicitante ante un ticket ajeno.
+        ticket = self.get_object()
+        serializer = CommentInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            comment = services.add_comment(ticket, request.user, **serializer.validated_data)
+        except TransitionError as error:
+            return self._service_error(error)
+        data = CommentSerializer(comment, context=self.get_serializer_context()).data
         return Response(data, status=status.HTTP_201_CREATED)
