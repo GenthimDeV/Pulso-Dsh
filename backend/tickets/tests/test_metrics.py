@@ -23,8 +23,9 @@ def hours_ago(h):
 
 
 def make_user(username, role, **extra):
+    team = extra.pop("team", "")
     user = get_user_model().objects.create_user(username, password="x", **extra)
-    Profile.objects.create(user=user, role=role, team=extra.pop("team", ""))
+    Profile.objects.create(user=user, role=role, team=team)
     return user
 
 
@@ -107,6 +108,17 @@ def test_variacion_frente_a_la_semana_anterior(make_ticket):
     assert data["open"] == {"count": 2, "week_ago": 2}
 
 
+def test_resuelto_sin_resolved_at_no_cuenta_como_abierto_en_ninguna_cifra(make_ticket):
+    week = 24 * 7
+    make_ticket(created_hours_ago=week + 10)  # abierto de verdad
+    broken = make_ticket(created_hours_ago=week + 10)
+    Ticket.objects.filter(pk=broken.pk).update(status=S.RESOLVED)  # resuelto sin fecha
+
+    data = metrics.summary("7d", now=NOW)
+
+    assert data["open"] == {"count": 1, "week_ago": 1}
+
+
 @pytest.mark.parametrize(
     ("range_code", "inside", "previous"),
     [
@@ -116,7 +128,7 @@ def test_variacion_frente_a_la_semana_anterior(make_ticket):
     ],
 )
 def test_resueltos_en_el_rango_y_en_el_anterior(make_ticket, range_code, inside, previous):
-    make_ticket(created_hours_ago=500, resolved_hours_ago=inside - 1 if inside > 1 else 0)
+    make_ticket(created_hours_ago=500, resolved_hours_ago=inside - 1)
     make_ticket(created_hours_ago=900, resolved_hours_ago=previous - 1)
     make_ticket(created_hours_ago=2000, resolved_hours_ago=1500)  # fuera de ambos
 
@@ -178,6 +190,13 @@ def test_agentes_con_carga_y_capacidad(make_ticket, agent, other_agent):
     assert by_name["marta"]["capacity"] == 10
     assert by_name["luis"]["assigned"] == 0 and by_name["luis"]["in_progress"] == 0
     assert len(rows) == 2  # los solicitantes no aparecen
+
+
+def test_agentes_desactivados_no_aparecen(agent, other_agent):
+    other_agent.is_active = False
+    other_agent.save()
+
+    assert [row["username"] for row in metrics.agent_loads()] == ["marta"]
 
 
 # --- API ----------------------------------------------------------------------

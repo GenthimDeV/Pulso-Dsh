@@ -41,8 +41,13 @@ def _week_start(moment):
 
 
 def _open_at(moment):
-    """Tickets que estaban abiertos (no resueltos) en `moment`."""
-    return Q(created_at__lte=moment) & (Q(resolved_at__isnull=True) | Q(resolved_at__gt=moment))
+    """Tickets que estaban abiertos (no resueltos) en `moment`.
+
+    El estado manda: un ticket `resolved` sin `resolved_at` (dato incoherente) no cuenta como
+    abierto en ningún momento, igual que en `open`.
+    """
+    still_open = Q(resolved_at__gt=moment) | (Q(resolved_at__isnull=True) & _UNRESOLVED)
+    return Q(created_at__lte=moment) & still_open
 
 
 def _counts_by(field, codes):
@@ -125,10 +130,10 @@ def _counts_by_status():
 
 
 def agent_loads():
-    """Todos los agentes (también con carga 0) con sus tickets asignados y en curso."""
+    """Agentes activos (también con carga 0) con sus tickets asignados y en curso."""
     agents = (
         get_user_model()
-        .objects.filter(profile__role=Profile.Role.AGENT)
+        .objects.filter(profile__role=Profile.Role.AGENT, is_active=True)
         .annotate(
             assigned=Count("assigned_tickets", filter=Q(assigned_tickets__status=Status.ASSIGNED)),
             in_progress=Count(
