@@ -136,6 +136,8 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+_num_proxies = os.environ.get("NUM_PROXIES", "").strip()
+
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -145,6 +147,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     # Solo se limitan login, refresh y logout (ScopedRateThrottle en sus vistas). El contador es
     # por IP y por proceso (LocMemCache): suficiente para la demo, no un límite global exacto.
+    # Nº de proxies de confianza delante de la app (DRF lo usa para sacar la IP de X-Forwarded-For).
+    # Sin definir, DRF toma la cabecera entera y un cliente podría esquivar el límite cambiándola.
+    # En Render se fija por env al desplegar (5.2), tras comprobar cuántos proxies hay.
+    "NUM_PROXIES": int(_num_proxies) if _num_proxies else None,
     "DEFAULT_THROTTLE_RATES": {
         "auth_login": os.environ.get("THROTTLE_AUTH_LOGIN", "10/min"),
         "auth_refresh": os.environ.get("THROTTLE_AUTH_REFRESH", "30/min"),
