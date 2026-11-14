@@ -2,6 +2,35 @@
   "app": {
     "name": "Pulso"
   },
+  "landing": {
+    "enter": "Sign in",
+    "title": "Support tickets, under control",
+    "lead": "Pulso is a support ticket management tool with SLAs, metrics and a clear lifecycle, built so agents always know what to handle first.",
+    "demoTitle": "This is a demo.",
+    "demoBody": "All data is fictional. You can sign in as an agent or a requester with a single click.",
+    "featuresTitle": "What you can try",
+    "features": {
+      "dashboard": {
+        "title": "Metrics dashboard",
+        "body": "Indicators with sparklines, workload per agent and the tickets that need attention."
+      },
+      "lifecycle": {
+        "title": "Lifecycle",
+        "body": "Only valid transitions between states are allowed; rejected ones are recorded."
+      },
+      "sla": {
+        "title": "SLA",
+        "body": "Every ticket shows its deadline and whether it is breached or at risk."
+      },
+      "conversation": {
+        "title": "Conversation with internal notes",
+        "body": "Reply to the requester and leave notes visible only to the team."
+      }
+    },
+    "footer": "Pulso · portfolio project",
+    "links": "Links",
+    "portfolio": "Portfolio"
+  },
   "nav": {
     "main": "Main navigation",
     "dashboard": "Dashboard",

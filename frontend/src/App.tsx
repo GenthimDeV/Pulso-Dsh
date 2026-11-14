@@ -7,6 +7,7 @@ import { RequireAuth, RequireRole } from './auth/guards'
 import { AGENT_ONLY, ALL_ROLES } from './auth/roles'
 import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
+import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { NoProfile } from './pages/NoProfile'
 import { NewTicket } from './pages/NewTicket'
@@ -23,7 +24,7 @@ export function App() {
         <AuthProvider>
           <Routes>
             <Route path="login" element={<Login />} />
-            <Route element={<RequireAuth />}>
+            <Route element={<RequireAuth publicHome={<Landing />} />}>
               <Route path="sin-perfil" element={<NoProfile />} />
               <Route element={<Layout />}>
                 <Route element={<RequireRole roles={ALL_ROLES} />}>

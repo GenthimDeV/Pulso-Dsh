@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from './AuthContext'
@@ -14,12 +15,18 @@ function SessionLoading() {
   )
 }
 
-/** Exige sesión; si no la hay, envía a `/login` recordando la ruta pedida. */
-export function RequireAuth() {
+/**
+ * Exige sesión; si no la hay, envía a `/login` recordando la ruta pedida.
+ * Excepción: en `/` muestra `publicHome` (la landing) en vez de redirigir.
+ */
+export function RequireAuth({ publicHome }: { publicHome?: ReactNode }) {
   const { status } = useAuth()
   const location = useLocation()
   if (status === 'loading') return <SessionLoading />
-  if (status === 'anonymous') return <Navigate to="/login" replace state={{ from: location }} />
+  if (status === 'anonymous') {
+    if (publicHome && location.pathname === '/') return publicHome
+    return <Navigate to="/login" replace state={{ from: location }} />
+  }
   return <Outlet />
 }
 

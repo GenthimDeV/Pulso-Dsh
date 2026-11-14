@@ -2,6 +2,35 @@
   "app": {
     "name": "Pulso"
   },
+  "landing": {
+    "enter": "Entrar",
+    "title": "Soporte con tickets, bajo control",
+    "lead": "Pulso es una herramienta de gestión de tickets de soporte con SLA, métricas y un ciclo de vida claro, pensada para que los agentes sepan siempre qué atender primero.",
+    "demoTitle": "Esto es una demo.",
+    "demoBody": "Todos los datos son ficticios. Puedes entrar como agente o como solicitante con un solo clic.",
+    "featuresTitle": "Qué puedes probar",
+    "features": {
+      "dashboard": {
+        "title": "Panel de métricas",
+        "body": "Indicadores con mini gráficas, carga por agente y los tickets que necesitan atención."
+      },
+      "lifecycle": {
+        "title": "Ciclo de vida",
+        "body": "Solo se permiten las transiciones válidas entre estados; las rechazadas quedan registradas."
+      },
+      "sla": {
+        "title": "SLA",
+        "body": "Cada ticket muestra su plazo y cuándo está vencido o en riesgo."
+      },
+      "conversation": {
+        "title": "Conversación con notas internas",
+        "body": "Responde al solicitante y deja notas visibles solo para el equipo."
+      }
+    },
+    "footer": "Pulso · proyecto de portfolio",
+    "links": "Enlaces",
+    "portfolio": "Portfolio"
+  },
   "nav": {
     "main": "Navegación principal",
     "dashboard": "Panel",
