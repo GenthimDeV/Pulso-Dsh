@@ -282,6 +282,8 @@
     "attention": {
       "title": "Need attention",
       "badge": "Nearest SLA",
+      "partial": "Some tickets could not be loaded; the list may be incomplete.",
+      "sla": "SLA",
       "openList": "Open full list",
       "empty": "There are no open tickets.",
       "overdue": "Overdue · {{time}}",

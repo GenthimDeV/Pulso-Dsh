@@ -769,6 +769,28 @@ def test_transicion_invalida_registra_el_rechazo(agent, ana, category):
     assert (rejected.from_status, rejected.to_status) == ("open", "resolved")
 
 
+def test_rechazos_identicos_seguidos_se_registran_una_vez(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    for _ in range(3):
+        post(agent, ticket, "transition", {"to": "resolved"})
+
+    assert RejectedTransition.objects.count() == 1
+
+
+def test_los_rechazos_por_ticket_tienen_tope(agent, ana, category, monkeypatch):
+    from tickets import services
+
+    monkeypatch.setattr(services, "REJECTIONS_PER_TICKET", 2)
+    monkeypatch.setattr(services, "REJECTION_THROTTLE", timedelta(0))
+    ticket = make_ticket(ana, category)
+
+    for _ in range(4):
+        post(agent, ticket, "transition", {"to": "resolved"})
+
+    assert RejectedTransition.objects.filter(ticket=ticket).count() == 2
+
+
 def test_otros_errores_y_transiciones_validas_no_registran_rechazo(agent, ana, category):
     ticket = make_ticket(ana, category)
 

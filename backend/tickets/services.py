@@ -1,11 +1,17 @@
 """Reglas de negocio de los tickets. Las vistas llaman aquí; no repiten la lógica."""
 
+from datetime import timedelta
+
 from django.db import transaction
 from django.utils import timezone
 
 from .models import Comment, RejectedTransition, Ticket, TicketEvent
 
 Status = Ticket.Status
+
+# Límites de `RejectedTransition` (ver `record_rejection`).
+REJECTION_THROTTLE = timedelta(minutes=1)
+REJECTIONS_PER_TICKET = 50
 
 # Máquina de estados (brief §4): desde -> destinos permitidos.
 TRANSITIONS = {
@@ -85,10 +91,27 @@ def record_rejection(ticket, error, actor):
     """Guarda un intento rechazado por la máquina de estados.
 
     Se llama FUERA de `transition` (que es atómica y revertiría el registro al lanzar el error).
+    Para que un agente no pueda inflar la tabla: un intento idéntico (mismo ticket, actor y
+    transición) dentro de `REJECTION_THROTTLE` no se vuelve a guardar, y cada ticket conserva
+    como máximo `REJECTIONS_PER_TICKET` filas (se descartan las más antiguas).
     """
-    return RejectedTransition.objects.create(
+    since = timezone.now() - REJECTION_THROTTLE
+    if RejectedTransition.objects.filter(
+        ticket=ticket,
+        actor=actor,
+        from_status=error.from_status,
+        to_status=error.to_status,
+        created_at__gte=since,
+    ).exists():
+        return None
+    rejected = RejectedTransition.objects.create(
         ticket=ticket, actor=actor, from_status=error.from_status, to_status=error.to_status
     )
+    stale = RejectedTransition.objects.filter(ticket=ticket).values_list("pk", flat=True)[
+        REJECTIONS_PER_TICKET:
+    ]
+    RejectedTransition.objects.filter(pk__in=list(stale)).delete()
+    return rejected
 
 
 def _is_agent(user):

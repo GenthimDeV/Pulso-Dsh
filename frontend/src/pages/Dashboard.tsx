@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query'
 import {
   Area,
   AreaChart,
@@ -93,7 +93,7 @@ function Chip({ tone, children }: { tone: Tone; children: React.ReactNode }) {
 }
 
 /** Mini gráfica decorativa (el dato real está en el texto de la tarjeta). */
-function Sparkline({ values, color }: { values: number[]; color: string }) {
+function Sparkline({ values, color }: { values: (number | null)[]; color: string }) {
   const data = values.map((value, index) => ({ index, value }))
   return (
     <div aria-hidden="true" className="h-9 w-24 shrink-0">
@@ -106,6 +106,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
             strokeWidth={2}
             fill={color}
             fillOpacity={0.12}
+            connectNulls
             isAnimationActive={false}
           />
         </AreaChart>
@@ -225,10 +226,7 @@ function Kpis({ data, range }: { data: MetricsSummary; range: Range }) {
               })
         }
         spark={
-          <Sparkline
-            values={data.resolution.weekly.map((week) => week.avg_hours ?? 0)}
-            color={ACCENT}
-          />
+          <Sparkline values={data.resolution.weekly.map((week) => week.avg_hours)} color={ACCENT} />
         }
       />
       <KpiCard
@@ -589,67 +587,74 @@ function Attention() {
           {t('dashboard.attention.empty')}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-205 border-collapse text-sm">
-            <thead>
-              <tr className="bg-[#f8f9fb] text-left text-xs font-semibold tracking-wide text-text-3 uppercase">
-                <th scope="col" className="px-6 py-3">
-                  {t('tickets.columns.ticket')}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {t('tickets.columns.priority')}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {t('tickets.columns.status')}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {t('tickets.columns.agent')}
-                </th>
-                <th scope="col" className="px-6 py-3 text-right">
-                  SLA
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((ticket) => {
-                const remaining = new Date(ticket.sla_due_at).getTime() - now
-                const late = remaining < AT_RISK_MS
-                return (
-                  <tr key={ticket.code} className="border-t border-bg">
-                    <td className="px-6 py-3.5">
-                      <Link to={`/tickets/${ticket.code}`} className="flex flex-col gap-0.5">
-                        <span className="font-mono text-xs text-text-3">{ticket.code}</span>
-                        <span className="font-semibold">{ticket.subject}</span>
-                      </Link>
-                    </td>
-                    <td className="px-3 py-3.5">
-                      <PriorityBadge priority={ticket.priority} />
-                    </td>
-                    <td className="px-3 py-3.5">
-                      <span className="inline-flex items-center gap-2 font-medium">
-                        <span
-                          aria-hidden="true"
-                          className={`size-2 rounded-full ${STATUS_DOT_CLASSES[ticket.status]}`}
-                        />
-                        {t(`tickets.status.${ticket.status}`)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3.5 text-text-2">
-                      {ticket.assignee ? displayName(ticket.assignee) : t('tickets.unassigned')}
-                    </td>
-                    <td
-                      className={`px-6 py-3.5 text-right font-mono text-xs font-medium ${late ? 'text-prio-urgent' : 'text-text-2'}`}
-                    >
-                      {remaining < 0
-                        ? t('dashboard.attention.overdue', { time: f.duration(-remaining) })
-                        : t('dashboard.attention.remaining', { time: f.duration(remaining) })}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {failed && (
+            <p role="alert" className="px-6 pb-3 text-xs text-prio-urgent">
+              {t('dashboard.attention.partial')}
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-205 border-collapse text-sm">
+              <thead>
+                <tr className="bg-[#f8f9fb] text-left text-xs font-semibold tracking-wide text-text-3 uppercase">
+                  <th scope="col" className="px-6 py-3">
+                    {t('tickets.columns.ticket')}
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    {t('tickets.columns.priority')}
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    {t('tickets.columns.status')}
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    {t('tickets.columns.agent')}
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right">
+                    {t('dashboard.attention.sla')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((ticket) => {
+                  const remaining = new Date(ticket.sla_due_at).getTime() - now
+                  const late = remaining < AT_RISK_MS
+                  return (
+                    <tr key={ticket.code} className="border-t border-bg">
+                      <td className="px-6 py-3.5">
+                        <Link to={`/tickets/${ticket.code}`} className="flex flex-col gap-0.5">
+                          <span className="font-mono text-xs text-text-3">{ticket.code}</span>
+                          <span className="font-semibold">{ticket.subject}</span>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <PriorityBadge priority={ticket.priority} />
+                      </td>
+                      <td className="px-3 py-3.5">
+                        <span className="inline-flex items-center gap-2 font-medium">
+                          <span
+                            aria-hidden="true"
+                            className={`size-2 rounded-full ${STATUS_DOT_CLASSES[ticket.status]}`}
+                          />
+                          {t(`tickets.status.${ticket.status}`)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5 text-text-2">
+                        {ticket.assignee ? displayName(ticket.assignee) : t('tickets.unassigned')}
+                      </td>
+                      <td
+                        className={`px-6 py-3.5 text-right font-mono text-xs font-medium ${late ? 'text-prio-urgent' : 'text-text-2'}`}
+                      >
+                        {remaining < 0
+                          ? t('dashboard.attention.overdue', { time: f.duration(-remaining) })
+                          : t('dashboard.attention.remaining', { time: f.duration(remaining) })}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </section>
   )
@@ -665,6 +670,7 @@ export function Dashboard() {
   const metrics = useQuery({
     queryKey: ['metrics', range],
     queryFn: ({ signal }) => fetchMetrics(range, signal),
+    placeholderData: keepPreviousData,
   })
   const agents = useQuery({ queryKey: ['agents'], queryFn: ({ signal }) => fetchAgents(signal) })
 
