@@ -398,6 +398,49 @@ def test_crear_con_datos_invalidos_devuelve_400_y_no_crea(ana, category, change)
     assert not TicketEvent.objects.exists()
 
 
+@pytest.mark.parametrize(
+    ("change", "errors"),
+    [
+        ({"subject": ""}, {"subject": "blank"}),
+        ({"subject": "x" * 201}, {"subject": "max_length"}),
+        ({"description": ""}, {"description": "blank"}),
+        ({"category": 99999}, {"category": "does_not_exist"}),
+        ({"priority": "critical"}, {"priority": "invalid_choice"}),
+    ],
+)
+def test_crear_con_datos_invalidos_devuelve_codigos(ana, category, change, errors):
+    response = client_for(ana).post(URL, {**payload(category), **change}, format="json")
+
+    assert response.status_code == 400
+    assert response.json() == errors
+
+
+def test_crear_sin_campos_devuelve_required_por_campo(ana, category):
+    response = client_for(ana).post(URL, {}, format="json")
+
+    assert response.json() == {
+        "subject": "required",
+        "description": "required",
+        "category": "required",
+    }
+
+
+def test_categorias_para_agentes_y_solicitantes(agent, ana, category):
+    Category.objects.create(name="Accesos")
+
+    for user in (agent, ana):
+        response = client_for(user).get("/api/v1/categories/")
+        assert response.status_code == 200
+        assert [c["name"] for c in response.json()] == ["Accesos", "Redes"]
+        assert set(response.json()[0]) == {"id", "name"}
+
+
+def test_categorias_exigen_sesion_y_perfil():
+    assert APIClient().get("/api/v1/categories/").status_code == 401
+    sin_perfil = make_user("sinperfil")
+    assert client_for(sin_perfil).get("/api/v1/categories/").status_code == 403
+
+
 def test_crear_sin_campos_obligatorios_devuelve_400(ana, category):
     response = client_for(ana).post(URL, {}, format="json")
 

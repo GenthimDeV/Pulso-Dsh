@@ -146,3 +146,26 @@ export function addComment(
 export function displayName(user: Pick<UserRef, 'username' | 'first_name' | 'last_name'>): string {
   return `${user.first_name} ${user.last_name}`.trim() || user.username
 }
+
+export interface Category {
+  id: number
+  name: string
+}
+
+export function fetchCategories(signal?: AbortSignal): Promise<Category[]> {
+  return apiFetch<Category[]>('/categories/', { signal })
+}
+
+export type NewTicketInput = {
+  subject: string
+  description: string
+  category: number
+  priority: Priority
+}
+
+export function createTicket(input: NewTicketInput): Promise<TicketDetail> {
+  return apiFetch<TicketDetail>('/tickets/', { method: 'POST', body: input })
+}
+
+/** Longitud máxima del asunto (coincide con el backend). */
+export const SUBJECT_MAX = 200

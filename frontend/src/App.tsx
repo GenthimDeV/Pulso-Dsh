@@ -9,6 +9,7 @@ import { Layout } from './components/Layout'
 import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
 import { NoProfile } from './pages/NoProfile'
+import { NewTicket } from './pages/NewTicket'
 import { NotFound } from './pages/NotFound'
 import { Placeholder } from './pages/Placeholder'
 import { TicketDetail } from './pages/TicketDetail'
@@ -27,10 +28,7 @@ export function App() {
               <Route element={<Layout />}>
                 <Route element={<RequireRole roles={ALL_ROLES} />}>
                   <Route path="tickets" element={<TicketList />} />
-                  <Route
-                    path="tickets/nuevo"
-                    element={<Placeholder title={t('pages.newTicket')} />}
-                  />
+                  <Route path="tickets/nuevo" element={<NewTicket />} />
                   <Route path="tickets/:code" element={<TicketDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>

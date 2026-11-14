@@ -9,9 +9,10 @@ from rest_framework.views import APIView
 from accounts.permissions import IsAgent, IsRequester, user_role
 
 from . import metrics, services
-from .models import Comment, Ticket, TicketEvent
+from .models import Category, Comment, Ticket, TicketEvent
 from .serializers import (
     AssignInputSerializer,
+    CategorySerializer,
     CommentInputSerializer,
     CommentSerializer,
     TicketCreateSerializer,
@@ -156,9 +157,8 @@ class TicketViewSet(
         return Response(data, status=status_code)
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        ticket = create_ticket(requester=request.user, **serializer.validated_data)
+        data = self._validated(TicketCreateSerializer, request.data)
+        ticket = create_ticket(requester=request.user, **data)
         return self._detail_response(ticket, status.HTTP_201_CREATED)
 
     @staticmethod
@@ -233,3 +233,12 @@ class AgentListView(APIView):
 
     def get(self, request):
         return Response(metrics.agent_loads())
+
+
+class CategoryListView(APIView):
+    """`GET /categories/`: categorías para el formulario de nuevo ticket."""
+
+    permission_classes = [IsAgent | IsRequester]
+
+    def get(self, request):
+        return Response(CategorySerializer(Category.objects.all(), many=True).data)

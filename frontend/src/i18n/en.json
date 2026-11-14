@@ -258,5 +258,28 @@
       "overdue": "Overdue · {{time}}",
       "remaining": "{{time}} left"
     }
+  },
+  "newTicket": {
+    "title": "New ticket",
+    "subtitle": "Tell us what you need; an agent will handle it according to its priority · fictional data",
+    "subject": "Subject",
+    "subjectPlaceholder": "Sum up the problem in one line",
+    "category": "Category",
+    "pick": "Pick a category",
+    "loadingCategories": "Loading categories…",
+    "categoriesFailed": "Categories could not be loaded.",
+    "priority": "Priority",
+    "description": "Description",
+    "descriptionPlaceholder": "What is happening, since when and what you have tried",
+    "cancel": "Cancel",
+    "submit": "Create ticket",
+    "creating": "Creating…",
+    "errors": {
+      "blank": "This field is required.",
+      "pickCategory": "Pick a category.",
+      "tooLong": "The text is too long (200 characters maximum).",
+      "invalid": "The value is not valid.",
+      "generic": "The ticket could not be created. Please try again."
+    }
   }
 }

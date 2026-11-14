@@ -258,5 +258,28 @@
       "overdue": "Vencido · {{time}}",
       "remaining": "Quedan {{time}}"
     }
+  },
+  "newTicket": {
+    "title": "Nuevo ticket",
+    "subtitle": "Cuéntanos qué necesitas; un agente lo atenderá según la prioridad · datos ficticios",
+    "subject": "Asunto",
+    "subjectPlaceholder": "Resume el problema en una línea",
+    "category": "Categoría",
+    "pick": "Elige una categoría",
+    "loadingCategories": "Cargando categorías…",
+    "categoriesFailed": "No se pudieron cargar las categorías.",
+    "priority": "Prioridad",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Qué ocurre, desde cuándo y qué has probado",
+    "cancel": "Cancelar",
+    "submit": "Crear ticket",
+    "creating": "Creando…",
+    "errors": {
+      "blank": "Este campo es obligatorio.",
+      "pickCategory": "Elige una categoría.",
+      "tooLong": "El texto es demasiado largo (máximo 200 caracteres).",
+      "invalid": "El valor no es válido.",
+      "generic": "No se pudo crear el ticket. Inténtalo de nuevo."
+    }
   }
 }
