@@ -57,6 +57,25 @@ class InvalidAssignee(TransitionError):
     code = "invalid_assignee"
 
 
+@transaction.atomic
+def create_ticket(requester, subject, description, category, priority=Ticket.Priority.MEDIUM):
+    """Crea un ticket `open` a nombre de `requester` y registra el evento `created`."""
+    ticket = Ticket.objects.create(
+        subject=subject,
+        description=description,
+        category=category,
+        priority=priority,
+        requester=requester,
+    )
+    TicketEvent.objects.create(
+        ticket=ticket,
+        actor=requester,
+        type=TicketEvent.Type.CREATED,
+        created_at=ticket.created_at,
+    )
+    return ticket
+
+
 def allowed_transitions(status):
     """Destinos válidos desde `status` (la UI los usa para habilitar los botones)."""
     return set(TRANSITIONS.get(status, ()))
