@@ -168,18 +168,22 @@ class TicketViewSet(
             body.update({"from": error.from_status, "to": error.to_status})
         return Response(body, status=SERVICE_ERROR_STATUS.get(error.code, 400))
 
+    @staticmethod
+    def _validated(serializer_class, data):
+        """Valida la entrada de una acción; los fallos salen como `{campo: código}`, sin textos."""
+        serializer = serializer_class(data=data)
+        if not serializer.is_valid():
+            raise ValidationError(
+                {field: errors[0].code for field, errors in serializer.errors.items()}
+            )
+        return serializer.validated_data
+
     @action(detail=True, methods=["post"], permission_classes=[IsAgent])
     def transition(self, request, code=None):
         ticket = self.get_object()
-        serializer = TransitionInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        data = self._validated(TransitionInputSerializer, request.data)
         try:
-            services.transition(
-                ticket,
-                serializer.validated_data["to"],
-                request.user,
-                assignee=serializer.validated_data.get("assignee"),
-            )
+            services.transition(ticket, data["to"], request.user, assignee=data.get("assignee"))
         except TransitionError as error:
             return self._service_error(error)
         return self._detail_response(ticket)
@@ -187,10 +191,9 @@ class TicketViewSet(
     @action(detail=True, methods=["post"], permission_classes=[IsAgent])
     def assign(self, request, code=None):
         ticket = self.get_object()
-        serializer = AssignInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        data = self._validated(AssignInputSerializer, request.data)
         try:
-            services.assign(ticket, serializer.validated_data["assignee"], request.user)
+            services.assign(ticket, data["assignee"], request.user)
         except TransitionError as error:
             return self._service_error(error)
         return self._detail_response(ticket)
@@ -199,10 +202,9 @@ class TicketViewSet(
     def comments(self, request, code=None):
         # `get_object` ya da 404 al solicitante ante un ticket ajeno.
         ticket = self.get_object()
-        serializer = CommentInputSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        data = self._validated(CommentInputSerializer, request.data)
         try:
-            comment = services.add_comment(ticket, request.user, **serializer.validated_data)
+            comment = services.add_comment(ticket, request.user, **data)
         except TransitionError as error:
             return self._service_error(error)
         data = CommentSerializer(comment, context=self.get_serializer_context()).data

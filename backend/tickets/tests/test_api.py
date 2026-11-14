@@ -483,11 +483,38 @@ def test_asignar_a_alguien_que_no_es_agente_devuelve_400(agent, ana, beto, categ
     assert (ticket.status, ticket.assignee) == (status_, current)
 
 
-@pytest.mark.parametrize("body", [{}, {"assignee": 999999}, {"assignee": "x"}, {"assignee": None}])
-def test_asignar_con_datos_invalidos_devuelve_400(agent, ana, category, body):
+@pytest.mark.parametrize(
+    ("body", "code"),
+    [
+        ({}, "required"),
+        ({"assignee": 999999}, "does_not_exist"),
+        ({"assignee": "x"}, "incorrect_type"),
+        ({"assignee": None}, "null"),
+    ],
+)
+def test_asignar_con_datos_invalidos_devuelve_400_con_codigo(agent, ana, category, body, code):
     ticket = make_ticket(ana, category)
 
-    assert post(agent, ticket, "assign", body).status_code == 400
+    response = post(agent, ticket, "assign", body)
+
+    assert response.status_code == 400
+    assert response.json() == {"assignee": code}
+
+
+@pytest.mark.parametrize("action_", ["assign", "transition"])
+def test_asignar_a_un_agente_inactivo_devuelve_400(agent, ana, category, action_):
+    inactive = make_user("baja", Profile.Role.AGENT, is_active=False)
+    ticket = make_ticket(ana, category)
+    body = {"assignee": inactive.pk}
+    if action_ == "transition":
+        body["to"] = "assigned"
+
+    response = post(agent, ticket, action_, body)
+
+    assert response.status_code == 400
+    assert response.json() == {"code": "invalid_assignee"}
+    ticket.refresh_from_db()
+    assert (ticket.status, ticket.assignee) == (S.OPEN, None)
 
 
 def test_solicitante_no_puede_asignar_ni_transicionar(ana, agent, category):
@@ -571,11 +598,23 @@ def test_assignee_en_una_transicion_que_no_asigna_devuelve_400(agent, other_agen
     assert response.json() == {"code": "invalid_assignee"}
 
 
-@pytest.mark.parametrize("body", [{}, {"to": "nope"}, {"to": "assigned", "assignee": 999999}])
-def test_transicion_con_datos_invalidos_devuelve_400(agent, ana, category, body):
+@pytest.mark.parametrize(
+    ("body", "errors"),
+    [
+        ({}, {"to": "required"}),
+        ({"to": "nope"}, {"to": "invalid_choice"}),
+        ({"to": "assigned", "assignee": 999999}, {"assignee": "does_not_exist"}),
+    ],
+)
+def test_transicion_con_datos_invalidos_devuelve_400_con_codigos(
+    agent, ana, category, body, errors
+):
     ticket = make_ticket(ana, category)
 
-    assert post(agent, ticket, "transition", body).status_code == 400
+    response = post(agent, ticket, "transition", body)
+
+    assert response.status_code == 400
+    assert response.json() == errors
 
 
 def test_transicion_de_un_codigo_inexistente_devuelve_404(agent):
@@ -643,11 +682,22 @@ def test_agente_comenta_cualquier_ticket(agent, ana, category):
     assert response.json()["author"]["id"] == agent.pk
 
 
-@pytest.mark.parametrize("body", [{}, {"body": ""}, {"body": "   "}, {"body": "x" * 5001}])
-def test_comentario_invalido_devuelve_400(ana, category, body):
+@pytest.mark.parametrize(
+    ("body", "code"),
+    [
+        ({}, "required"),
+        ({"body": ""}, "blank"),
+        ({"body": "   "}, "blank"),
+        ({"body": "x" * 5001}, "max_length"),
+    ],
+)
+def test_comentario_invalido_devuelve_400_con_codigo(ana, category, body, code):
     ticket = make_ticket(ana, category)
 
-    assert post(ana, ticket, "comments", body).status_code == 400
+    response = post(ana, ticket, "comments", body)
+
+    assert response.status_code == 400
+    assert response.json() == {"body": code}
     assert not Comment.objects.exists()
 
 

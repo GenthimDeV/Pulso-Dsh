@@ -83,7 +83,7 @@ def allowed_transitions(status):
 
 def _is_agent(user):
     profile = getattr(user, "profile", None)
-    return bool(user and profile and profile.is_agent)
+    return bool(user and user.is_active and profile and profile.is_agent)
 
 
 @transaction.atomic
