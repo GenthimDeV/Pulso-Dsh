@@ -1,0 +1,35 @@
+# Workflow GDV (local, nunca se sube)
+CLAUDE.md
+WORKFLOW_STATE.md
+task.md
+docs/PROJECT_PROFILE.md
+docs/PROJECT_BACKLOG.md
+docs/PROJECT_BACKLOG_ARCHIVE.md
+.claude/
+docs/design/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.sqlite3
+.pytest_cache/
+.ruff_cache/
+staticfiles/
+
+# Node / frontend
+node_modules/
+dist/
+*.local
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
