@@ -13,3 +13,6 @@ STORAGES = {
     **STORAGES,  # noqa: F405
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
+
+# El hash PBKDF2 por defecto domina el tiempo de la suite (cada create_user lo calcula).
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

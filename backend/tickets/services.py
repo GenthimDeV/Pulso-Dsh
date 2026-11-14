@@ -43,9 +43,18 @@ class AssigneeRequired(TransitionError):
 
 
 class NotAnAgent(TransitionError):
-    """Solo los agentes cambian estados (y solo agentes pueden ser asignados)."""
+    """El actor no es agente: solo los agentes cambian estados (la API responde 403)."""
 
     code = "not_an_agent"
+
+
+class InvalidAssignee(TransitionError):
+    """El asignado no es válido: no es agente, o se pasó en una transición que no asigna.
+
+    Es un error de validación de los datos (la API responde 400/422), no de permisos.
+    """
+
+    code = "invalid_assignee"
 
 
 def allowed_transitions(status):
@@ -64,6 +73,7 @@ def transition(ticket, to_status, actor, assignee=None):
 
     - Solo un agente puede ejecutarla.
     - `assigned` exige un asignado: `assignee` o el que ya tenga el ticket; debe ser agente.
+    - `assignee` solo se admite al pasar a `assigned`; en otro destino es `InvalidAssignee`.
     - `assigned -> open` desasigna; `resolved` rellena `resolved_at`; reabrir lo limpia.
     """
     if not _is_agent(actor):
@@ -76,6 +86,9 @@ def transition(ticket, to_status, actor, assignee=None):
     if to_status not in TRANSITIONS.get(from_status, ()):
         raise InvalidTransition(from_status, to_status)
 
+    if assignee is not None and to_status != Status.ASSIGNED:
+        raise InvalidAssignee("Solo se puede indicar un asignado al pasar a 'assigned'.")
+
     event_type = TicketEvent.Type.STATUS_CHANGED
     now = timezone.now()
 
@@ -84,7 +97,7 @@ def transition(ticket, to_status, actor, assignee=None):
         if new_assignee is None:
             raise AssigneeRequired("Pasar a 'assigned' exige un agente asignado.")
         if not _is_agent(new_assignee):
-            raise NotAnAgent("Solo un agente puede ser asignado a un ticket.")
+            raise InvalidAssignee("Solo un agente puede ser asignado a un ticket.")
         if from_status == Status.OPEN or new_assignee != current.assignee:
             event_type = TicketEvent.Type.ASSIGNED
         current.assignee = new_assignee

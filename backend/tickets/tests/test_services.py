@@ -8,6 +8,7 @@ from tickets.models import Category, Ticket, TicketEvent
 from tickets.services import (
     TRANSITIONS,
     AssigneeRequired,
+    InvalidAssignee,
     InvalidTransition,
     NotAnAgent,
     allowed_transitions,
@@ -136,7 +137,7 @@ def test_ciclo_completo_deja_un_evento_por_transicion(make_ticket, agent):
     steps = [S.ASSIGNED, S.IN_PROGRESS, S.RESOLVED, S.IN_PROGRESS]
 
     for step in steps:
-        transition(ticket, step, agent, assignee=agent)
+        transition(ticket, step, agent, assignee=agent if step == S.ASSIGNED else None)
 
     events = list(ticket.events.all())
     assert [(e.from_status, e.to_status) for e in events] == [
@@ -247,10 +248,25 @@ def test_assigned_sin_assignee_falla(make_ticket, agent):
 def test_no_se_puede_asignar_a_un_solicitante(make_ticket, agent, requester):
     ticket = make_ticket()
 
-    with pytest.raises(NotAnAgent):
+    with pytest.raises(InvalidAssignee) as exc:
         transition(ticket, S.ASSIGNED, agent, assignee=requester)
 
+    assert exc.value.code == "invalid_assignee"
+    assert not isinstance(exc.value, NotAnAgent)
     assert Ticket.objects.get(pk=ticket.pk).status == S.OPEN
+    assert not ticket.events.exists()
+
+
+def test_assignee_en_una_transicion_que_no_asigna_se_rechaza(make_ticket, agent, other_agent):
+    ticket = make_ticket(S.ASSIGNED, assignee=agent)
+
+    for to_status in (S.IN_PROGRESS, S.OPEN):
+        with pytest.raises(InvalidAssignee):
+            transition(ticket, to_status, agent, assignee=other_agent)
+
+    current = Ticket.objects.get(pk=ticket.pk)
+    assert (current.status, current.assignee) == (S.ASSIGNED, agent)
+    assert not ticket.events.exists()
 
 
 def test_un_solicitante_no_puede_cambiar_estados(make_ticket, requester, agent):
