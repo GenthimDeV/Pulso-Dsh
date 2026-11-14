@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import Profile
-from tickets.models import Category, Comment, Ticket, TicketEvent
+from tickets.models import Category, Comment, RejectedTransition, Ticket, TicketEvent
 
 pytestmark = pytest.mark.django_db
 
@@ -714,3 +714,23 @@ def test_las_acciones_no_aceptan_get(agent, ana, category):
 
     for action in ("transition", "assign", "comments"):
         assert client_for(agent).get(act(ticket, action)).status_code == 405
+
+
+def test_transicion_invalida_registra_el_rechazo(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    post(agent, ticket, "transition", {"to": "resolved"})
+
+    rejected = RejectedTransition.objects.get()
+    assert (rejected.ticket, rejected.actor) == (ticket, agent)
+    assert (rejected.from_status, rejected.to_status) == ("open", "resolved")
+
+
+def test_otros_errores_y_transiciones_validas_no_registran_rechazo(agent, ana, category):
+    ticket = make_ticket(ana, category)
+
+    post(agent, ticket, "transition", {"to": "assigned"})  # falta asignado: 400
+    post(agent, ticket, "transition", {"to": "nope"})  # datos inválidos: 400
+    post(agent, ticket, "transition", {"to": "assigned", "assignee": agent.pk})  # válida
+
+    assert not RejectedTransition.objects.exists()

@@ -141,3 +141,28 @@ class TicketEvent(models.Model):
 
     def __str__(self):
         return f"{self.ticket.code} · {self.type}"
+
+
+class RejectedTransition(models.Model):
+    """Intento de transición rechazado por la máquina de estados (alimenta el panel de métricas)."""
+
+    ticket = models.ForeignKey(
+        Ticket, on_delete=models.CASCADE, related_name="rejected_transitions"
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rejected_transitions",
+    )
+    from_status = models.CharField(max_length=20, choices=Ticket.Status.choices)
+    to_status = models.CharField(max_length=20, choices=Ticket.Status.choices)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["created_at"])]
+
+    def __str__(self):
+        return f"{self.ticket.code} · {self.from_status} → {self.to_status}"

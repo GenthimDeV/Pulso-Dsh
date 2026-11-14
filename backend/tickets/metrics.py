@@ -7,12 +7,12 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Min, Q
-from django.db.models.functions import TruncWeek
+from django.db.models.functions import TruncDate, TruncWeek
 from django.utils import timezone
 
 from accounts.models import Profile
 
-from .models import Ticket
+from .models import RejectedTransition, Ticket
 
 Status = Ticket.Status
 Priority = Ticket.Priority
@@ -76,6 +76,50 @@ def _weekly_resolution(now):
     return weeks
 
 
+def _series_days(range_code):
+    return 30 if range_code == "30d" else 7
+
+
+def _day_end(day, now):
+    """Fin del día `day` (o `now` si es hoy)."""
+    end = day.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return min(end, now)
+
+
+def _daily_series(range_code, now):
+    """Series diarias: abiertos al cierre de cada día y resueltos por día (un agregado cada una)."""
+    days = [
+        (now - timedelta(days=offset)).replace(hour=0, minute=0, second=0, microsecond=0)
+        for offset in range(_series_days(range_code) - 1, -1, -1)
+    ]
+    open_counts = Ticket.objects.aggregate(
+        **{f"d{i}": Count("pk", filter=_open_at(_day_end(day, now))) for i, day in enumerate(days)}
+    )
+    resolved_rows = (
+        Ticket.objects.filter(resolved_at__gte=days[0], resolved_at__lte=now)
+        .annotate(day=TruncDate("resolved_at"))
+        .values("day")
+        .annotate(n=Count("pk"))
+    )
+    resolved_by_day = {row["day"]: row["n"] for row in resolved_rows}
+    return {
+        "open": [{"date": day.date(), "count": open_counts[f"d{i}"]} for i, day in enumerate(days)],
+        "resolved": [
+            {"date": day.date(), "count": resolved_by_day.get(day.date(), 0)} for day in days
+        ],
+    }
+
+
+def _rejected(start, now):
+    """Transiciones rechazadas en el periodo y la última (solo códigos)."""
+    rows = RejectedTransition.objects.filter(created_at__gte=start, created_at__lte=now)
+    latest = rows.first()  # Meta.ordering = -created_at
+    return {
+        "count": rows.count(),
+        "latest": {"from": latest.from_status, "to": latest.to_status} if latest else None,
+    }
+
+
 def summary(range_code=DEFAULT_RANGE, now=None):
     now = now or timezone.now()
     start = _range_start(range_code, now)
@@ -119,6 +163,8 @@ def summary(range_code=DEFAULT_RANGE, now=None):
             "target_hours": RESOLUTION_TARGET_HOURS,
             "weekly": _weekly_resolution(now),
         },
+        "rejected": _rejected(start, now),
+        "series": _daily_series(range_code, now),
     }
 
 

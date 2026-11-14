@@ -3,7 +3,7 @@
 from django.db import transaction
 from django.utils import timezone
 
-from .models import Comment, Ticket, TicketEvent
+from .models import Comment, RejectedTransition, Ticket, TicketEvent
 
 Status = Ticket.Status
 
@@ -79,6 +79,16 @@ def create_ticket(requester, subject, description, category, priority=Ticket.Pri
 def allowed_transitions(status):
     """Destinos válidos desde `status` (la UI los usa para habilitar los botones)."""
     return set(TRANSITIONS.get(status, ()))
+
+
+def record_rejection(ticket, error, actor):
+    """Guarda un intento rechazado por la máquina de estados.
+
+    Se llama FUERA de `transition` (que es atómica y revertiría el registro al lanzar el error).
+    """
+    return RejectedTransition.objects.create(
+        ticket=ticket, actor=actor, from_status=error.from_status, to_status=error.to_status
+    )
 
 
 def _is_agent(user):

@@ -186,6 +186,8 @@ class TicketViewSet(
         try:
             services.transition(ticket, data["to"], request.user, assignee=data.get("assignee"))
         except TransitionError as error:
+            if isinstance(error, InvalidTransition):
+                services.record_rejection(ticket, error, request.user)
             return self._service_error(error)
         return self._detail_response(ticket)
 

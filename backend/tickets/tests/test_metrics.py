@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import Profile
 from tickets import metrics
-from tickets.models import Category, Ticket
+from tickets.models import Category, RejectedTransition, Ticket
 
 pytestmark = pytest.mark.django_db
 
@@ -171,7 +171,7 @@ def test_el_resumen_usa_un_numero_fijo_de_consultas(make_ticket, agent):
         make_ticket(created_hours_ago=i + 1, priority=P.HIGH)
     with CaptureQueriesContext(connection) as queries:
         metrics.summary("30d", now=NOW)
-    assert len(queries) == 4  # totales, por prioridad, por estado, semanas
+    assert len(queries) == 8  # totales, prioridad, estado, semanas, series (2), rechazadas (2)
 
 
 def test_agentes_con_carga_y_capacidad(make_ticket, agent, other_agent):
@@ -247,3 +247,53 @@ def test_agentes_por_api(agent, other_agent, make_ticket):
     rows = {row["username"]: row for row in response.json()}
     assert rows["marta"]["assigned"] == 1 and rows["marta"]["capacity"] == 10
     assert set(rows["luis"]) >= {"id", "first_name", "last_name", "team", "in_progress"}
+
+
+def test_series_diarias_de_abiertos_y_resueltos(make_ticket):
+    make_ticket(created_hours_ago=24 * 10)  # abierto durante toda la ventana
+    make_ticket(
+        created_hours_ago=24 * 10, resolved_hours_ago=36
+    )  # resuelto el martes 10 a las 00:00
+    make_ticket(created_hours_ago=2)  # creado hoy
+
+    series = metrics.summary("7d", now=NOW)["series"]
+
+    assert len(series["open"]) == len(series["resolved"]) == 7
+    assert series["open"][0]["date"].isoformat() == "2026-11-05"
+    assert series["open"][-1]["date"].isoformat() == "2026-11-11"
+    # Del jueves 5 al lunes 9: 2 abiertos; el martes 10 se resuelve uno; hoy llega uno nuevo.
+    assert [p["count"] for p in series["open"]] == [2, 2, 2, 2, 2, 1, 2]
+    assert [p["count"] for p in series["resolved"]] == [0, 0, 0, 0, 0, 1, 0]
+
+
+def test_series_de_30_dias(make_ticket):
+    series = metrics.summary("30d", now=NOW)["series"]
+    assert len(series["open"]) == len(series["resolved"]) == 30
+
+
+def test_transiciones_rechazadas_cuentan_en_el_periodo(make_ticket, agent):
+    ticket = make_ticket()
+    RejectedTransition.objects.create(
+        ticket=ticket,
+        actor=agent,
+        from_status=S.OPEN,
+        to_status=S.RESOLVED,
+        created_at=hours_ago(2),
+    )
+    RejectedTransition.objects.create(
+        ticket=ticket,
+        actor=agent,
+        from_status=S.ASSIGNED,
+        to_status=S.RESOLVED,
+        created_at=hours_ago(30),
+    )
+
+    today = metrics.summary("today", now=NOW)["rejected"]
+    week = metrics.summary("7d", now=NOW)["rejected"]
+
+    assert today == {"count": 1, "latest": {"from": "open", "to": "resolved"}}
+    assert week["count"] == 2
+    assert metrics.summary("7d", now=NOW + timedelta(days=30))["rejected"] == {
+        "count": 0,
+        "latest": None,
+    }

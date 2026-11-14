@@ -186,5 +186,77 @@
       "title": "Account without a profile",
       "body": "This account is neither an agent nor a requester, so it cannot use the app."
     }
+  },
+  "dashboard": {
+    "loading": "Loading dashboard…",
+    "error": "Dashboard data could not be loaded.",
+    "hours": "{{value}} h",
+    "viewAll": "View all",
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "range": {
+      "label": "Period",
+      "today": "Today",
+      "7d": "7 days",
+      "30d": "30 days",
+      "todayShort": "today",
+      "7dShort": "7 days",
+      "30dShort": "30 days",
+      "todayLong": "today",
+      "7dLong": "in the last 7 days",
+      "30dLong": "in the last 30 days"
+    },
+    "kpi": {
+      "open": "Open tickets",
+      "openNote": "vs. {{count}} last week",
+      "unassigned": "Unassigned",
+      "urgent_one": "{{count}} urgent",
+      "urgent_other": "{{count}} urgent",
+      "oldest": "Oldest: {{time}} ago",
+      "noneWaiting": "None waiting",
+      "resolution": "Average resolution time",
+      "targetMet": "Target: {{target}} · met",
+      "targetMissed": "Target: {{target}} · missed",
+      "noData": "No data yet",
+      "resolved": "Resolved · {{period}}",
+      "sla": "SLA: {{breached}} breached · {{atRisk}} at risk"
+    },
+    "priority": {
+      "title": "Open by priority",
+      "summary": "{{total}} open tickets: {{detail}}",
+      "sla": "SLA {{hours}} h"
+    },
+    "resolution": {
+      "title": "Average resolution time",
+      "subtitle": "Hours per week · last 12 weeks",
+      "real": "Actual",
+      "target": "Target {{hours}} h",
+      "summary": "Average time went from {{first}} h to {{last}} h; the target is {{target}} h"
+    },
+    "agents": {
+      "title": "Load per agent",
+      "capacity": "Capacity",
+      "empty": "There are no active agents.",
+      "load": "{{assigned}} assigned and {{inProgress}} in progress, out of a capacity of {{capacity}}"
+    },
+    "lifecycle": {
+      "title": "Lifecycle",
+      "subtitle": "Tickets in each state right now",
+      "noRejected": "No invalid transitions rejected {{period}}.",
+      "rejected_one": "{{count}} invalid transition rejected {{period}}.",
+      "rejected_other": "{{count}} invalid transitions rejected {{period}}.",
+      "latest": "Latest:"
+    },
+    "attention": {
+      "title": "Need attention",
+      "badge": "Nearest SLA",
+      "openList": "Open full list",
+      "empty": "There are no open tickets.",
+      "overdue": "Overdue · {{time}}",
+      "remaining": "{{time}} left"
+    }
   }
 }

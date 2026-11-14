@@ -6,6 +6,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { RequireAuth, RequireRole } from './auth/guards'
 import { AGENT_ONLY, ALL_ROLES } from './auth/roles'
 import { Layout } from './components/Layout'
+import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
 import { NoProfile } from './pages/NoProfile'
 import { NotFound } from './pages/NotFound'
@@ -34,7 +35,7 @@ export function App() {
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route element={<RequireRole roles={AGENT_ONLY} />}>
-                  <Route index element={<Placeholder title={t('nav.dashboard')} />} />
+                  <Route index element={<Dashboard />} />
                   <Route path="asignados" element={<Placeholder title={t('nav.assigned')} />} />
                   <Route path="agentes" element={<Placeholder title={t('nav.agents')} />} />
                   <Route path="informes" element={<Placeholder title={t('nav.reports')} />} />

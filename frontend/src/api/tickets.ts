@@ -43,6 +43,8 @@ export interface TicketFilters {
   search?: string
   page?: number
   pageSize?: number
+  /** Campo de orden de la API (`-updated_at` por defecto). */
+  ordering?: string
 }
 
 export const PAGE_SIZE = 20
@@ -60,7 +62,7 @@ export function fetchTickets(
       search: filters.search,
       page: filters.page,
       page_size: filters.pageSize ?? PAGE_SIZE,
-      ordering: '-updated_at',
+      ordering: filters.ordering ?? '-updated_at',
     },
   })
 }

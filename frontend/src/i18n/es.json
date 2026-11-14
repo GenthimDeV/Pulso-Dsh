@@ -186,5 +186,77 @@
       "title": "Cuenta sin perfil",
       "body": "Esta cuenta no es de agente ni de solicitante, así que no puede usar la aplicación."
     }
+  },
+  "dashboard": {
+    "loading": "Cargando el panel…",
+    "error": "No se pudieron cargar los datos del panel.",
+    "hours": "{{value}} h",
+    "viewAll": "Ver todos",
+    "greeting": {
+      "morning": "Buenos días, {{name}}",
+      "afternoon": "Buenas tardes, {{name}}",
+      "evening": "Buenas noches, {{name}}"
+    },
+    "range": {
+      "label": "Periodo",
+      "today": "Hoy",
+      "7d": "7 días",
+      "30d": "30 días",
+      "todayShort": "hoy",
+      "7dShort": "7 días",
+      "30dShort": "30 días",
+      "todayLong": "hoy",
+      "7dLong": "en los últimos 7 días",
+      "30dLong": "en los últimos 30 días"
+    },
+    "kpi": {
+      "open": "Tickets abiertos",
+      "openNote": "vs. {{count}} la semana pasada",
+      "unassigned": "Sin asignar",
+      "urgent_one": "{{count}} urgente",
+      "urgent_other": "{{count}} urgentes",
+      "oldest": "Más antiguo: hace {{time}}",
+      "noneWaiting": "Ninguno esperando",
+      "resolution": "Tiempo medio de resolución",
+      "targetMet": "Objetivo: {{target}} · cumplido",
+      "targetMissed": "Objetivo: {{target}} · no cumplido",
+      "noData": "Sin datos todavía",
+      "resolved": "Resueltos · {{period}}",
+      "sla": "SLA: {{breached}} vencidos · {{atRisk}} en riesgo"
+    },
+    "priority": {
+      "title": "Abiertos por prioridad",
+      "summary": "{{total}} tickets abiertos: {{detail}}",
+      "sla": "SLA {{hours}} h"
+    },
+    "resolution": {
+      "title": "Tiempo medio de resolución",
+      "subtitle": "Horas por semana · últimas 12 semanas",
+      "real": "Real",
+      "target": "Objetivo {{hours}} h",
+      "summary": "El tiempo medio pasó de {{first}} h a {{last}} h; el objetivo es {{target}} h"
+    },
+    "agents": {
+      "title": "Carga por agente",
+      "capacity": "Capacidad",
+      "empty": "No hay agentes activos.",
+      "load": "{{assigned}} asignados y {{inProgress}} en curso, de una capacidad de {{capacity}}"
+    },
+    "lifecycle": {
+      "title": "Ciclo de vida",
+      "subtitle": "Tickets en cada estado ahora mismo",
+      "noRejected": "Ninguna transición no válida rechazada {{period}}.",
+      "rejected_one": "{{count}} transición no válida rechazada {{period}}.",
+      "rejected_other": "{{count}} transiciones no válidas rechazadas {{period}}.",
+      "latest": "Última:"
+    },
+    "attention": {
+      "title": "Necesitan atención",
+      "badge": "SLA más próximo",
+      "openList": "Abrir lista completa",
+      "empty": "No hay tickets abiertos.",
+      "overdue": "Vencido · {{time}}",
+      "remaining": "Quedan {{time}}"
+    }
   }
 }
