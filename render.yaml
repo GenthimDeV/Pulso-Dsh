@@ -16,3 +16,5 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false # se pega en el panel de Render (connection string de Neon)
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # URL del frontend (Cloudflare Pages); se define en la fase 5

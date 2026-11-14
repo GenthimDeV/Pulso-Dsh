@@ -1,6 +1,7 @@
 """Settings de Pulso. Todo lo que cambia entre entornos viene de variables de entorno."""
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -63,6 +64,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "corsheaders",
     "core",
     "accounts",
     "tickets",
@@ -72,6 +74,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     # Sirve los estáticos (admin) desde gunicorn en Render; va justo tras SecurityMiddleware.
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    # CORS debe ir antes de CommonMiddleware para que las respuestas lleven sus cabeceras.
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -133,4 +137,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    # Todo endpoint exige sesión salvo que declare lo contrario (como /health/ y el login).
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+# Orígenes del frontend (Cloudflare Pages, Vite en local), separados por comas.
+# Sin valor, CORS queda cerrado.
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173" if DEBUG else ""
+)
