@@ -1,0 +1,37 @@
+{
+  "app": { "name": "Pulso" },
+  "nav": {
+    "main": "Navegación principal",
+    "dashboard": "Panel",
+    "tickets": "Tickets",
+    "assigned": "Asignados a mí",
+    "agents": "Agentes",
+    "reports": "Informes"
+  },
+  "header": {
+    "searchLabel": "Buscar tickets",
+    "searchPlaceholder": "Buscar por asunto, código o solicitante",
+    "language": "Idioma",
+    "notifications": "Notificaciones",
+    "newTicket": "Nuevo ticket"
+  },
+  "server": {
+    "waking": "Despertando el servidor de demo…",
+    "wakingHint": "El plan gratuito lo duerme tras un rato sin uso. Puede tardar hasta un minuto; se reintenta solo.",
+    "api": "API",
+    "online": "en línea",
+    "offline": "sin conexión",
+    "checking": "comprobando…"
+  },
+  "errors": {
+    "network": "No se pudo conectar con el servidor.",
+    "unknown": "Ha ocurrido un error inesperado."
+  },
+  "pages": {
+    "comingSoon": "Esta pantalla llega en una tarea posterior.",
+    "notFound": "Página no encontrada",
+    "backHome": "Volver al panel",
+    "newTicket": "Nuevo ticket",
+    "ticketDetail": "Detalle del ticket"
+  }
+}

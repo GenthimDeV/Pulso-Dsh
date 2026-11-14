@@ -1,0 +1,37 @@
+{
+  "app": { "name": "Pulso" },
+  "nav": {
+    "main": "Main navigation",
+    "dashboard": "Dashboard",
+    "tickets": "Tickets",
+    "assigned": "Assigned to me",
+    "agents": "Agents",
+    "reports": "Reports"
+  },
+  "header": {
+    "searchLabel": "Search tickets",
+    "searchPlaceholder": "Search by subject, code or requester",
+    "language": "Language",
+    "notifications": "Notifications",
+    "newTicket": "New ticket"
+  },
+  "server": {
+    "waking": "Waking up the demo server…",
+    "wakingHint": "The free plan puts it to sleep after a while without use. It can take up to a minute; it retries on its own.",
+    "api": "API",
+    "online": "online",
+    "offline": "offline",
+    "checking": "checking…"
+  },
+  "errors": {
+    "network": "Could not reach the server.",
+    "unknown": "An unexpected error occurred."
+  },
+  "pages": {
+    "comingSoon": "This screen arrives in a later task.",
+    "notFound": "Page not found",
+    "backHome": "Back to the dashboard",
+    "newTicket": "New ticket",
+    "ticketDetail": "Ticket detail"
+  }
+}

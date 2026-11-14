@@ -1,0 +1,51 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/jetbrains-mono/500.css';
+@import 'tailwindcss';
+
+/* Tokens "Sala de control" (brief §3). */
+@theme {
+  --color-sidebar: #12151c;
+  --color-sidebar-2: #1b1f2b;
+  --color-sidebar-active: #232838;
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-line: #e3e6ec;
+  --color-text: #12151c;
+  --color-text-2: #3d4555;
+  --color-text-3: #5b6477;
+  --color-accent: #4c6fff;
+  --color-accent-text: #2b4fd8;
+
+  --color-prio-urgent-bg: #fdece4;
+  --color-prio-urgent: #a33a0a;
+  --color-prio-high-bg: #fff3d6;
+  --color-prio-high: #7a4a00;
+  --color-prio-medium-bg: #e8edff;
+  --color-prio-medium: #2b4fd8;
+  --color-prio-low-bg: #eef0f3;
+  --color-prio-low: #3d4555;
+
+  --color-chart-urgent: #d9480f;
+  --color-chart-high: #f0a23b;
+  --color-chart-medium: #4c6fff;
+  --color-chart-low: #b8bfcc;
+
+  --color-st-open: #4c6fff;
+  --color-st-assigned: #7b5ce0;
+  --color-st-in-progress: #f0a23b;
+  --color-st-resolved: #0e7c66;
+
+  --font-display: 'Space Grotesk Variable', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-bg font-sans text-text antialiased;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
